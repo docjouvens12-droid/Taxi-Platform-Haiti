@@ -1,0 +1,139 @@
+/* Passenger dashboard mobile polish — keeps ride/auth logic untouched */
+@media (max-width: 600px) {
+  .phone-frame {
+    width: 100%;
+    min-height: 100dvh;
+  }
+
+  .map-panel {
+    height: 32dvh;
+    min-height: 235px;
+    max-height: 300px;
+  }
+
+  .topbar {
+    top: 14px;
+    left: 14px;
+    right: 14px;
+  }
+
+  .round-button {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+  }
+
+  .booking-sheet {
+    margin-top: -24px;
+    border-radius: 25px 25px 0 0;
+    padding: 8px 15px calc(108px + env(safe-area-inset-bottom));
+    min-height: 68dvh;
+  }
+
+  .grabber {
+    width: 40px;
+    height: 4px;
+    margin-bottom: 11px;
+  }
+
+  .greeting-row {
+    gap: 8px;
+  }
+
+  .greeting-row h1 {
+    font-size: 23px;
+  }
+
+  .online-pill {
+    padding: 6px 9px;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+  .route-card {
+    margin-top: 12px;
+    border-radius: 17px;
+    padding: 2px 12px;
+  }
+
+  .input-wrap {
+    padding: 8px 0;
+  }
+
+  .input-wrap input {
+    font-size: 13px;
+  }
+
+  .section-heading {
+    margin-top: 13px;
+  }
+
+  .section-heading h2 {
+    font-size: 16px;
+  }
+
+  .ride-list {
+    gap: 6px;
+    margin-top: 7px;
+  }
+
+  .ride-option {
+    min-height: 58px;
+    padding: 7px 10px;
+    border-radius: 15px;
+  }
+
+  .ride-icon {
+    width: 39px;
+    height: 39px;
+    border-radius: 12px;
+    font-size: 20px;
+    margin-right: 9px;
+  }
+
+  .ride-copy strong {
+    font-size: 13px;
+  }
+
+  .ride-copy small {
+    font-size: 9px;
+  }
+
+  .ride-price {
+    font-size: 12px;
+  }
+
+  .payment-row {
+    margin-top: 8px;
+    padding: 8px 10px;
+  }
+
+  .request-button,
+  .searching-card {
+    margin-top: 10px;
+    min-height: 52px;
+  }
+
+  .request-button {
+    padding: 12px 14px;
+  }
+
+  .fine-print {
+    margin-top: 7px;
+  }
+}
+
+@media (max-width: 390px) {
+  .map-panel {
+    height: 29dvh;
+    min-height: 220px;
+  }
+
+  .greeting-row h1 {
+    font-size: 21px;
+  }
+
+  .online-pill {
+    font-size: 9px;
+  }
+}

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="MOVI maskable app icon">
+  <defs>
+    <linearGradient id="bg" x1="110" y1="70" x2="900" y2="960" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#24c47c"/>
+      <stop offset="0.48" stop-color="#0d9963"/>
+      <stop offset="1" stop-color="#05613f"/>
+    </linearGradient>
+    <linearGradient id="pin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9af4ad"/>
+      <stop offset="1" stop-color="#57df83"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <path d="M214 660 L374 382 Q396 344 432 344 Q470 344 492 381 L596 548 Q613 574 636 574 Q658 574 676 554 L750 470 Q776 440 808 456 Q836 470 842 508 L865 676 Q870 712 842 733 Q814 754 783 738 Q760 726 756 698 L743 625 L692 681 Q664 711 625 711 Q583 711 556 675 L439 518 L323 690 Q302 720 267 720 Q235 720 216 696 Q199 673 214 660 Z" fill="#fff"/>
+  <path d="M682 198 C624 198 577 245 577 303 C577 376 682 475 682 475 C682 475 787 376 787 303 C787 245 740 198 682 198 Z" fill="url(#pin)"/>
+  <circle cx="682" cy="300" r="34" fill="#0a8b5b"/>
+</svg>

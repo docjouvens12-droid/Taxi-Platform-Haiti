@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Taxi Haiti">
+  <rect width="512" height="512" rx="116" fill="#0f705a"/>
+  <rect x="104" y="176" width="304" height="174" rx="48" fill="#ffffff"/>
+  <path d="M150 214c16-48 54-76 106-76s90 28 106 76" fill="none" stroke="#ffffff" stroke-width="34" stroke-linecap="round"/>
+  <rect x="144" y="206" width="224" height="72" rx="28" fill="#0f705a"/>
+  <circle cx="174" cy="344" r="34" fill="#17382f"/>
+  <circle cx="338" cy="344" r="34" fill="#17382f"/>
+  <rect x="205" y="100" width="102" height="54" rx="18" fill="#ffd85a"/>
+  <text x="256" y="138" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="32" font-weight="900" fill="#17382f">TAXI</text>
+  <circle cx="166" cy="249" r="13" fill="#ffd85a"/>
+  <circle cx="346" cy="249" r="13" fill="#ffd85a"/>
+</svg>

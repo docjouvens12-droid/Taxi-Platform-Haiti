@@ -1,0 +1,125 @@
+'use client'
+
+import { usePathname } from 'next/navigation'
+import PassengerStableAvatarUpload from './PassengerStableAvatarUpload'
+import PassengerProfileDetails from './PassengerProfileDetails'
+import PassengerTripsStableInline from './PassengerTripsStableInline'
+import PassengerPaymentStableInline from './PassengerPaymentStableInline'
+import PassengerLanguageSwitchStable from './PassengerLanguageSwitchStable'
+import PassengerHelpStableInline from './PassengerHelpStableInline'
+import PassengerLogoutStable from './PassengerLogoutStable'
+import PassengerTypedAddressPreview from './PassengerTypedAddressPreview'
+import PassengerDashboardPaymentPanel from './PassengerDashboardPaymentPanel'
+import PassengerAcceptedRideMiniMap from './PassengerAcceptedRideMiniMap'
+import PassengerMiniMapMetricsNarrow from './PassengerMiniMapMetricsNarrow'
+import PassengerRideStatusFlow from './PassengerRideStatusFlow'
+import PassengerPendingRideCancel from './PassengerPendingRideCancel'
+
+import DriverAvatarUploadPolish from './DriverAvatarUploadPolish'
+import DriverDashboardTitleHide from './DriverDashboardTitleHide'
+import DriverOnlineSwitchPolish from './DriverOnlineSwitchPolish'
+import DriverBrandTaxiPolish from './DriverBrandTaxiPolish'
+import DriverCompactBrandPolish from './DriverCompactBrandPolish'
+import DriverLogoutPolish from './DriverLogoutPolish'
+import DriverAutoRequestSearch from './DriverAutoRequestSearch'
+import DriverRideExperiencePolish from './DriverRideExperiencePolish'
+import DriverCompletedRideSummary from './DriverCompletedRideSummary'
+import DriverHomeDashboardPolish from './DriverHomeDashboardPolish'
+import DriverFinalMenuStable from './DriverFinalMenuStable'
+import DriverApplicationSubmitButton from './DriverApplicationSubmitButton'
+import DriverPayoutEditPolish from './DriverPayoutEditPolish'
+import DriverFinalHelpTopics from './DriverFinalHelpTopics'
+import DriverDrawerHeaderPolish from './DriverDrawerHeaderPolish'
+import DriverProfileSectionPolish from './DriverProfileSectionPolish'
+import DriverVehicleSectionPolish from './DriverVehicleSectionPolish'
+import DriverPaymentsSectionPolish from './DriverPaymentsSectionPolish'
+import DriverHistorySectionPolish from './DriverHistorySectionPolish'
+import DriverEarningsSectionPolish from './DriverEarningsSectionPolish'
+import DriverLanguageSectionPolish from './DriverLanguageSectionPolish'
+import DriverAccessGate from './DriverAccessGate'
+import DriverCleanMenu from './DriverCleanMenu'
+import DriverCleanMenuFinalGuard from './DriverCleanMenuFinalGuard'
+import DriverCleanHelpTopics from './DriverCleanHelpTopics'
+import DriverCleanMenuOrder from './DriverCleanMenuOrder'
+import DriverCleanHeaderRestore from './DriverCleanHeaderRestore'
+import DriverCleanAvatarUpload from './DriverCleanAvatarUpload'
+import DriverCleanApplicationPanel from './DriverCleanApplicationPanel'
+import DriverCleanPaymentsPolish from './DriverCleanPaymentsPolish'
+import DriverCleanHistoryPolish from './DriverCleanHistoryPolish'
+import DriverCleanHistoryLabel from './DriverCleanHistoryLabel'
+import DriverCleanEarningsPolish from './DriverCleanEarningsPolish'
+import DriverCleanLanguagePolish from './DriverCleanLanguagePolish'
+
+import AdminDriverApplicationProfileSnapshot from './AdminDriverApplicationProfileSnapshot'
+import AdminDriverVehicleSnapshot from './AdminDriverVehicleSnapshot'
+
+export default function RouteScopedEnhancers() {
+  const pathname = usePathname()
+  const isDriver = pathname.startsWith('/driver')
+  const isCleanDriverDashboard = pathname.startsWith('/driver/dashboard-v2')
+  const isAdmin = pathname.startsWith('/admin')
+  const isPassenger = !isDriver && !isAdmin
+
+  return <>
+    {isPassenger && <>
+      <PassengerStableAvatarUpload />
+      <PassengerProfileDetails />
+      <PassengerTripsStableInline />
+      <PassengerPaymentStableInline />
+      <PassengerLanguageSwitchStable />
+      <PassengerHelpStableInline />
+      <PassengerLogoutStable />
+      <PassengerTypedAddressPreview />
+      <PassengerDashboardPaymentPanel />
+      <PassengerAcceptedRideMiniMap />
+      <PassengerMiniMapMetricsNarrow />
+      <PassengerRideStatusFlow />
+      <PassengerPendingRideCancel />
+    </>}
+
+    {isCleanDriverDashboard && <>
+      <DriverCleanMenu />
+      <DriverCleanMenuFinalGuard />
+      <DriverCleanHelpTopics />
+      <DriverCleanMenuOrder />
+      <DriverCleanHeaderRestore />
+      <DriverCleanAvatarUpload />
+      <DriverCleanApplicationPanel />
+      <DriverCleanPaymentsPolish />
+      <DriverCleanHistoryPolish />
+      <DriverCleanHistoryLabel />
+      <DriverCleanEarningsPolish />
+      <DriverCleanLanguagePolish />
+    </>}
+
+    {isDriver && !isCleanDriverDashboard && <>
+      <DriverAccessGate />
+      <DriverAvatarUploadPolish />
+      <DriverDashboardTitleHide />
+      <DriverOnlineSwitchPolish />
+      <DriverBrandTaxiPolish />
+      <DriverCompactBrandPolish />
+      <DriverLogoutPolish />
+      <DriverAutoRequestSearch />
+      <DriverRideExperiencePolish />
+      <DriverCompletedRideSummary />
+      <DriverHomeDashboardPolish />
+      <DriverFinalMenuStable />
+      <DriverApplicationSubmitButton />
+      <DriverPayoutEditPolish />
+      <DriverFinalHelpTopics />
+      <DriverDrawerHeaderPolish />
+      <DriverProfileSectionPolish />
+      <DriverVehicleSectionPolish />
+      <DriverPaymentsSectionPolish />
+      <DriverHistorySectionPolish />
+      <DriverEarningsSectionPolish />
+      <DriverLanguageSectionPolish />
+    </>}
+
+    {isAdmin && <>
+      <AdminDriverApplicationProfileSnapshot />
+      <AdminDriverVehicleSnapshot />
+    </>}
+  </>
+}

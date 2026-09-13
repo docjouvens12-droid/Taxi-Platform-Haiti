@@ -1,0 +1,56 @@
+/* Admin-only mobile header spacing: keeps Taxi Haiti branding from covering the admin title/content. */
+.adminShell .topbar{position:relative!important;z-index:2!important;min-width:0!important;overflow:visible!important}
+.adminShell .topbar .brand{min-width:0!important;flex:1 1 auto!important}
+.adminShell .topbar .brand>div{min-width:0!important}
+.adminShell .topbar .brand strong,.adminShell .topbar .brand small{max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+.adminShell .topbar .topActions{flex:0 0 auto!important}
+.adminShell .hero{position:relative!important;z-index:1!important;clear:both!important}
+
+/* Prevent global passenger .shell/.topbar styles from breaking admin pages that use the same class names. */
+html,body{max-width:100%!important;overflow-x:hidden!important}
+body{width:100%!important;margin:0!important;display:block!important}
+main.page{display:block!important;position:relative!important;left:0!important;right:auto!important;transform:none!important;width:100%!important;max-width:100%!important;min-width:0!important;min-height:100dvh!important;margin:0!important;overflow-x:hidden!important}
+main.page>section.shell{display:block!important;position:relative!important;left:0!important;right:auto!important;transform:none!important;width:min(100%,880px)!important;max-width:100%!important;min-width:0!important;height:auto!important;margin-left:auto!important;margin-right:auto!important;overflow:hidden!important}
+main.page>section.shell>*{max-width:100%!important;min-width:0!important;box-sizing:border-box!important}
+main.page>section.shell>.topbar{position:relative!important;top:auto!important;bottom:auto!important;left:auto!important;right:auto!important;transform:none!important;width:100%!important;max-width:100%!important;display:flex!important;grid-template-columns:none!important;align-items:center!important;justify-content:space-between!important}
+main.page>section.shell .hero,main.page>section.shell .stats,main.page>section.shell .toolbar,main.page>section.shell .list{width:100%!important;max-width:100%!important;min-width:0!important;left:auto!important;right:auto!important;transform:none!important}
+main.page>section.shell .toolbar>*{min-width:0!important;max-width:100%!important}
+
+@media(max-width:650px){
+  .adminShell{padding-top:max(10px,env(safe-area-inset-top))!important}
+  .adminShell .topbar{min-height:58px!important;padding:8px 10px!important;border-radius:18px!important;gap:8px!important}
+  .adminShell .topbar .brand{gap:8px!important;overflow:hidden!important}
+  .adminShell .topbar .brand>span{width:38px!important;height:38px!important;min-width:38px!important;border-radius:12px!important;font-size:18px!important}
+  .adminShell .topbar .brand strong{font-size:13px!important;line-height:1.15!important}
+  .adminShell .topbar .brand small{display:none!important}
+  .adminShell .topbar .topActions{gap:5px!important}
+  .adminShell .topbar .topActions select,.adminShell .topbar .topActions button{height:38px!important;min-width:38px!important;padding:0 8px!important;border-radius:11px!important}
+  .adminShell .hero{padding:16px 4px 12px!important;align-items:flex-start!important}
+  .adminShell .hero>div{min-width:0!important;flex:1 1 auto!important}
+  .adminShell .hero h1{font-size:22px!important;line-height:1.12!important;overflow-wrap:anywhere!important}
+  .adminShell .hero p{font-size:9px!important;margin-bottom:4px!important}
+  .adminShell .hero button{flex:0 0 auto!important;white-space:nowrap!important}
+
+  main.page{width:100vw!important;max-width:100vw!important}
+  main.page>section.shell{width:100%!important;max-width:100vw!important;min-height:100dvh!important;margin:0!important;padding:16px!important;border-radius:0!important}
+  main.page>section.shell>.topbar{min-height:50px!important;gap:8px!important}
+  main.page>section.shell>.topbar .back{min-width:0!important;max-width:48%!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  main.page>section.shell>.topbar .topActions{display:flex!important;flex:0 0 auto!important;gap:6px!important;min-width:0!important}
+  main.page>section.shell>.topbar .logout{white-space:nowrap!important;max-width:132px!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  main.page>section.shell .hero{display:flex!important;min-width:0!important;overflow:hidden!important}
+  main.page>section.shell .hero>div:last-child{min-width:0!important}
+  main.page>section.shell .hero h1,main.page>section.shell .hero p,main.page>section.shell .hero small{max-width:100%!important;overflow-wrap:anywhere!important}
+  main.page>section.shell .stats{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+  main.page>section.shell .stats button{min-width:0!important;overflow:hidden!important}
+  main.page>section.shell .stats small{overflow-wrap:anywhere!important}
+  main.page>section.shell .toolbar{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:9px!important}
+  main.page>section.shell .toolbar input{grid-column:1/-1!important;width:100%!important}
+}
+
+@media(max-width:390px){
+  .adminShell .topbar .brand strong{font-size:12px!important}
+  .adminShell .hero{gap:8px!important}
+  .adminShell .hero h1{font-size:20px!important}
+  main.page>section.shell{padding-left:12px!important;padding-right:12px!important}
+  main.page>section.shell>.topbar .logout{max-width:116px!important}
+}

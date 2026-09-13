@@ -1,0 +1,14 @@
+@media(max-width:600px){
+  .account-panel .feature-card{max-width:420px;margin:0 auto;border:1px solid #dfe8ed;border-radius:18px;padding:15px;background:#fff;box-shadow:0 8px 24px rgba(20,37,55,.06)}
+  .account-panel .feature-icon{width:44px;height:44px;border-radius:14px;background:#eaf7f2;font-size:21px;flex:0 0 auto}
+  .account-panel .feature-card small{font-size:9px;font-weight:850;letter-spacing:.05em;text-transform:uppercase;color:#7c8996}
+  .account-panel .feature-card strong{font-size:15px;margin-top:4px;color:#102033}
+  .account-panel .muted{max-width:420px;margin:12px auto 0;padding:12px 14px;border-radius:14px;background:#eef4f6;color:#647687;font-size:11px;line-height:1.5}
+
+  .account-panel .promo-panel{padding:30px 16px 24px;text-align:center}
+  .account-panel .promo-icon{width:72px;height:72px;margin:0 auto 16px;border-radius:22px;background:#eaf7f2;font-size:34px;box-shadow:0 10px 26px rgba(15,107,86,.10)}
+  .account-panel .promo-panel h2{max-width:330px;margin:0 auto 10px;font-size:21px;line-height:1.18;color:#102033}
+  .account-panel .promo-panel p{max-width:340px;margin:0 auto;color:#66798a;font-size:12px;line-height:1.55}
+  .account-panel .primary-panel-button{display:block;width:min(100%,340px);min-height:48px;margin:20px auto 0;border-radius:16px;padding:13px 16px;font-size:13px;font-weight:900;box-shadow:0 10px 24px rgba(15,107,86,.18);touch-action:manipulation}
+  .account-panel .primary-panel-button:active{transform:translateY(1px)}
+}

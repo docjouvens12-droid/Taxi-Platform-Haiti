@@ -1,0 +1,40 @@
+@media (max-width: 600px) {
+  .nav-drawer .avatar-only-user{
+    background:transparent!important;
+    margin:2px 0 10px!important;
+    padding:2px 4px 8px!important;
+    justify-content:flex-start!important;
+  }
+  .nav-drawer .passenger-photo-avatar{
+    width:58px!important;
+    height:58px!important;
+    cursor:pointer!important;
+    overflow:hidden!important;
+    border:3px solid #e7f3ef!important;
+    box-shadow:0 8px 20px rgba(15,107,86,.16)!important;
+    position:relative!important;
+  }
+  .nav-drawer .passenger-photo-avatar::after{
+    content:'+';
+    position:absolute;
+    right:-1px;
+    bottom:-1px;
+    width:20px;
+    height:20px;
+    display:grid;
+    place-items:center;
+    border-radius:50%;
+    background:#0f6b56;
+    color:#fff;
+    border:2px solid #fff;
+    font-size:13px;
+    font-weight:900;
+    line-height:1;
+  }
+  .nav-drawer .passenger-photo-avatar img{
+    width:100%!important;
+    height:100%!important;
+    object-fit:cover!important;
+    display:block!important;
+  }
+}

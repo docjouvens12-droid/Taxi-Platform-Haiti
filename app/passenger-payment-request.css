@@ -1,0 +1,126 @@
+/* STEP 5 — passenger payment + request button. Scoped to the passenger dashboard only. */
+.shell .payment-row{
+  margin:16px 0 12px!important;
+  min-height:66px!important;
+  padding:10px 12px!important;
+  border-radius:20px!important;
+  background:#f8fbfa!important;
+  border:1px solid #dfe9e4!important;
+  box-shadow:0 7px 20px rgba(16,32,51,.04)!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+}
+.shell .payment-row>div{
+  min-width:0!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:11px!important;
+}
+.shell .payment-icon{
+  width:42px!important;
+  height:42px!important;
+  border-radius:14px!important;
+  background:#eaf6f1!important;
+  display:grid!important;
+  place-items:center!important;
+  flex:none!important;
+  font-size:21px!important;
+}
+.shell .payment-row>div>div{
+  min-width:0!important;
+  display:grid!important;
+  gap:2px!important;
+}
+.shell .payment-row small{
+  color:#82928c!important;
+  font-size:10px!important;
+  line-height:1.2!important;
+  font-weight:800!important;
+}
+.shell .payment-row strong{
+  color:#10243a!important;
+  font-size:14px!important;
+  line-height:1.15!important;
+  font-weight:950!important;
+}
+.shell .payment-row>button{
+  min-height:38px!important;
+  padding:0 12px!important;
+  border-radius:13px!important;
+  border:1px solid #d6e5df!important;
+  background:#fff!important;
+  color:#087c53!important;
+  font-size:12px!important;
+  font-weight:900!important;
+  white-space:nowrap!important;
+  box-shadow:none!important;
+}
+.shell .request-button{
+  width:100%!important;
+  min-height:62px!important;
+  padding:0 18px!important;
+  border:0!important;
+  border-radius:20px!important;
+  background:linear-gradient(135deg,#16a36f,#087c53)!important;
+  color:#fff!important;
+  box-shadow:0 14px 30px rgba(8,124,83,.24)!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:14px!important;
+  font-size:15px!important;
+  font-weight:950!important;
+  letter-spacing:-.01em!important;
+  transition:none!important;
+  animation:none!important;
+}
+.shell .request-button span{
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  text-align:left!important;
+}
+.shell .request-button strong{
+  flex:none!important;
+  font-size:14px!important;
+  font-weight:950!important;
+  white-space:nowrap!important;
+}
+.shell .request-button:disabled{
+  background:#c3cdc9!important;
+  color:#f7f9f8!important;
+  box-shadow:none!important;
+  opacity:1!important;
+}
+.shell .ride-error{
+  margin:10px 0!important;
+  padding:10px 12px!important;
+  border-radius:14px!important;
+  background:#fff4f2!important;
+  border:1px solid #f0d6d1!important;
+  color:#b64c43!important;
+  font-size:12px!important;
+  font-weight:750!important;
+}
+.shell .searching-card{
+  margin-top:12px!important;
+  min-height:66px!important;
+  padding:12px 14px!important;
+  border-radius:20px!important;
+  background:#eef9f4!important;
+  border:1px solid #d8eee4!important;
+  box-shadow:0 9px 24px rgba(8,124,83,.07)!important;
+}
+.shell .fine-print{display:none!important}
+
+@media(max-width:420px){
+  .shell .payment-row{min-height:62px!important;padding:9px 10px!important;border-radius:18px!important}
+  .shell .payment-icon{width:40px!important;height:40px!important;border-radius:13px!important;font-size:20px!important}
+  .shell .payment-row strong{font-size:13.5px!important}
+  .shell .payment-row>button{min-height:36px!important;padding:0 10px!important;font-size:11.5px!important}
+  .shell .request-button{min-height:60px!important;padding:0 15px!important;border-radius:18px!important;font-size:14px!important}
+  .shell .request-button strong{font-size:13px!important}
+}

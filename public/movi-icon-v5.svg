@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="MOVI app icon">
+  <defs>
+    <linearGradient id="bg" x1="110" y1="70" x2="900" y2="960" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#24c47c"/>
+      <stop offset="0.48" stop-color="#0d9963"/>
+      <stop offset="1" stop-color="#05613f"/>
+    </linearGradient>
+    <linearGradient id="pin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9af4ad"/>
+      <stop offset="1" stop-color="#57df83"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#003a29" flood-opacity="0.24"/>
+    </filter>
+  </defs>
+  <rect x="34" y="34" width="956" height="956" rx="224" fill="url(#bg)"/>
+  <path d="M184 652 L360 344 Q384 302 425 302 Q468 302 493 343 L607 524 Q625 552 650 552 Q674 552 693 530 L775 438 Q803 406 840 423 Q872 438 878 479 L904 666 Q910 708 878 731 Q846 754 811 736 Q785 723 780 691 L766 608 L710 668 Q679 702 636 702 Q590 702 559 662 L431 491 L303 680 Q280 714 240 714 Q204 714 183 687 Q164 661 184 652 Z" fill="#fff" filter="url(#shadow)"/>
+  <path d="M690 152 C618 152 560 210 560 282 C560 372 690 495 690 495 C690 495 820 372 820 282 C820 210 762 152 690 152 Z" fill="url(#pin)" filter="url(#shadow)"/>
+  <circle cx="690" cy="278" r="42" fill="#0a8b5b"/>
+</svg>

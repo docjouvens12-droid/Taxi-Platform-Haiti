@@ -1,0 +1,148 @@
+/* MOVI final branding layer — visual only, no DOM observers */
+
+/* Shared MOVI wordmark */
+.app-underlay .brand-chip strong,
+.upe-brand strong,
+.auth-brand strong,
+.adminShell .brand strong,
+body:has(.driver-home-polish-root) .brand strong {
+  font-size: 0 !important;
+  line-height: 1 !important;
+}
+
+.app-underlay .brand-chip strong::after,
+.upe-brand strong::after,
+.auth-brand strong::after,
+.adminShell .brand strong::after,
+body:has(.driver-home-polish-root) .brand strong::after {
+  content: 'MOVI' !important;
+  display: inline-block !important;
+  font-size: 17px !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+  letter-spacing: -.035em !important;
+  color: #10243a !important;
+}
+
+/* Shared MOVI app mark: green tile + white movement M + mint location pin */
+.app-underlay .brand-chip .brand-mark,
+.upe-brand > span,
+.auth-brand .brand-mark,
+.adminShell .brand > span,
+body:has(.driver-home-polish-root) .brand > span,
+body:has(.driver-home-polish-root) .brand > button {
+  font-size: 0 !important;
+  color: transparent !important;
+  background: linear-gradient(145deg,#18b76f 0%,#07965d 55%,#087b50 100%) !important;
+  border-radius: 13px !important;
+  font-weight: 950 !important;
+  box-shadow: 0 5px 14px rgba(8,123,80,.18) !important;
+  overflow: hidden !important;
+}
+
+.app-underlay .brand-chip .brand-mark::after,
+.upe-brand > span::after,
+.auth-brand .brand-mark::after,
+.adminShell .brand > span::after,
+body:has(.driver-home-polish-root) .brand > span::after,
+body:has(.driver-home-polish-root) .brand > button::after {
+  content: '' !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M16 72 L33 37 Q36 31 42 37 L58 58 Q61 62 65 57 L73 46 Q78 39 82 48 L87 72' fill='none' stroke='%23ffffff' stroke-width='15' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M65 13c-10 0-18 8-18 18 0 14 18 31 18 31s18-17 18-31c0-10-8-18-18-18z' fill='%2389efb6'/%3E%3Ccircle cx='65' cy='31' r='6.5' fill='%2309975e'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 88% 88% !important;
+}
+
+/* Passenger dashboard: keep the icon + MOVI wordmark exactly centered */
+.app-underlay .topbar {
+  position: absolute !important;
+  display: grid !important;
+  grid-template-columns: 46px minmax(0,1fr) 46px !important;
+  align-items: center !important;
+  column-gap: 8px !important;
+}
+
+.app-underlay .topbar > .round-button:first-child {
+  grid-column: 1 !important;
+  justify-self: start !important;
+}
+
+.app-underlay .topbar > .brand-chip {
+  grid-column: 2 !important;
+  justify-self: center !important;
+  margin-inline: auto !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 7px 10px !important;
+  text-align: center !important;
+}
+
+.app-underlay .topbar > .brand-chip small {
+  display: none !important;
+}
+
+.app-underlay .topbar > .round-button:last-child {
+  grid-column: 3 !important;
+  justify-self: end !important;
+}
+
+/* Public entry */
+.upe-brand > span {
+  display: grid !important;
+  place-items: center !important;
+}
+.upe-badge {
+  font-size: 0 !important;
+}
+.upe-badge::after {
+  content: '🇭🇹 MOVI' !important;
+  font-size: 10px !important;
+}
+
+/* Legacy signed-out card kept as safe fallback */
+.auth-brand .brand-mark {
+  display: grid !important;
+  place-items: center !important;
+}
+
+/* Driver */
+body:has(.driver-home-polish-root) .brand {
+  justify-content: center !important;
+}
+body:has(.driver-home-polish-root) .brand > button {
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 13px !important;
+}
+
+/* Admin */
+.adminShell .brand > span {
+  display: grid !important;
+  place-items: center !important;
+}
+.adminShell .brand small {
+  font-size: 0 !important;
+}
+.adminShell .brand small::after {
+  content: 'MOVI' !important;
+  font-size: 10px !important;
+  color: #75847e !important;
+}
+
+@media (max-width: 420px) {
+  .app-underlay .brand-chip strong::after,
+  .upe-brand strong::after,
+  .auth-brand strong::after,
+  .adminShell .brand strong::after,
+  body:has(.driver-home-polish-root) .brand strong::after {
+    font-size: 16px !important;
+  }
+}

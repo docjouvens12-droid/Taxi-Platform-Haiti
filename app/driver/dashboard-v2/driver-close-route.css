@@ -1,0 +1,5 @@
+.drv2-ride-mode .dcu-overlap-pair{isolation:isolate}
+.drv2-ride-mode .dcu-overlap-pair::after,.drv2-ride-mode .dcu-overlap-pair::before{content:"";position:absolute;left:38px;right:24px;top:50%;transform:translateY(-50%);border-radius:999px;pointer-events:none}
+.drv2-ride-mode .dcu-overlap-pair::after{height:12px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.16);z-index:0}
+.drv2-ride-mode .dcu-overlap-pair::before{height:6px;background:#0f8065;z-index:1}
+.drv2-ride-mode .dcu-overlap-driver,.drv2-ride-mode .dcu-overlap-target{position:relative;z-index:2}

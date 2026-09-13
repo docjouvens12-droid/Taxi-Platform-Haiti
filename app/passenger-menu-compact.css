@@ -1,0 +1,64 @@
+/* Compact MOVI passenger drawer for iPhone: keep every item and logout visible. */
+@media (max-width: 430px){
+  .nav-drawer{
+    width:84vw!important;
+    max-width:350px!important;
+    padding:max(14px,env(safe-area-inset-top)) 14px calc(12px + env(safe-area-inset-bottom))!important;
+    border-radius:0 24px 24px 0!important;
+    overflow-y:auto!important;
+  }
+  .drawer-head{padding:2px 0 11px!important}
+  .drawer-brand{gap:9px!important}
+  .drawer-brand .brand-mark{width:42px!important;height:42px!important;border-radius:14px!important}
+  .drawer-brand .brand-mark:after{font-size:22px!important}
+  .drawer-brand strong:after{font-size:19px!important}
+  .drawer-brand small{font-size:10px!important}
+  .drawer-head>button{width:40px!important;height:40px!important;font-size:23px!important}
+
+  .drawer-user{
+    margin:12px 0 8px!important;
+    padding:11px 12px!important;
+    border-radius:17px!important;
+    gap:10px!important;
+  }
+  .drawer-avatar{width:46px!important;height:46px!important;font-size:20px!important}
+  .drawer-user strong{font-size:14px!important}
+  .drawer-user small{font-size:10px!important;max-width:170px!important}
+
+  .drawer-nav{gap:2px!important;margin-top:2px!important}
+  .drawer-nav>button{
+    min-height:45px!important;
+    border-radius:14px!important;
+    grid-template-columns:36px 1fr 16px!important;
+    gap:6px!important;
+    padding:5px 9px!important;
+    font-size:14px!important;
+  }
+  .drawer-nav>button>span{
+    width:32px!important;height:32px!important;
+    border-radius:10px!important;font-size:16px!important;
+  }
+  .drawer-nav>button>b{font-size:19px!important}
+
+  .drawer-language{
+    margin:3px 0!important;
+    padding:7px 9px!important;
+    border-radius:14px!important;
+    grid-template-columns:36px 1fr!important;
+    gap:6px!important;
+  }
+  .drawer-language>span{width:32px!important;height:32px!important;border-radius:10px!important;font-size:16px!important}
+  .drawer-language small{font-size:9px!important;margin-bottom:2px!important}
+  .drawer-language .language-trigger{font-size:13px!important}
+
+  .drawer-logout{
+    margin-top:8px!important;
+    min-height:44px!important;
+    flex:0 0 auto!important;
+    border-radius:14px!important;
+    font-size:13px!important;
+    position:sticky!important;
+    bottom:0!important;
+    z-index:3!important;
+  }
+}

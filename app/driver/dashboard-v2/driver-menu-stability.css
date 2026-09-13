@@ -1,0 +1,44 @@
+/* iPhone/Safari stability fixes for the MOVI driver drawer. */
+html:has(.dcm-overlay),
+body:has(.dcm-overlay) {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+.dcm-overlay {
+  background: rgba(17, 45, 39, 0.5) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  overflow: hidden !important;
+  touch-action: none !important;
+  contain: strict !important;
+}
+
+.dcm-drawer {
+  top: 0 !important;
+  bottom: auto !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  transform: translate3d(0, 0, 0) !important;
+  backface-visibility: hidden !important;
+  -webkit-backface-visibility: hidden !important;
+  will-change: transform !important;
+  contain: layout paint style !important;
+}
+
+.dcm-drawer *,
+.dcm-overlay * {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dcm-overlay,
+  .dcm-drawer,
+  .dcm-drawer * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
