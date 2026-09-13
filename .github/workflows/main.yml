@@ -1,0 +1,31 @@
+name: Import Taxi Platform Haiti
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout new repository
+        uses: actions/checkout@v4
+
+      - name: Clone old repository
+        run: |
+          git clone https://github.com/docjouvens12-droid/Haiti-Nursing-Exam-Prep.git /tmp/oldrepo
+
+      - name: Copy taxi app only
+        run: |
+          cp -a /tmp/oldrepo/taxi-app/. ./
+
+      - name: Commit imported taxi app
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add .
+          git commit -m "Import Taxi Platform Haiti from taxi-app" || exit 0
+          git push origin main
