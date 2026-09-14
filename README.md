@@ -4,9 +4,9 @@ Frontend mobile-first pou platfòm taksi a.
 
 ## Vercel
 
-- Root Directory: `taxi-app`
+- Root Directory: ./
 - Framework: Next.js
-- Production branch: `taxi-platform-haiti` pou premye tès yo
+- Production branch: main
 
 ## Environment variables
 
