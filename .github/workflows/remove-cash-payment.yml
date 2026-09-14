@@ -1,4 +1,4 @@
-nam RRemove Cash Payment
+nam Remove Cash Payment
 on:
   workflow_dispatch:
 
