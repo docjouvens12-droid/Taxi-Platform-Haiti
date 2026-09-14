@@ -1,5 +1,4 @@
-name: Remove cash payment
-
+name:.github/worflows/remove-cash-payment.yml
 on:
   workflow_dispatch:
 
