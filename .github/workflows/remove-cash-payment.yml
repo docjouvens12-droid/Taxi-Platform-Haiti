@@ -1,4 +1,4 @@
-namname: Remove Cash Payment
+name: Remove Cash Payment
 on:
   workflow_dispatch:
 
