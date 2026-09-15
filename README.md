@@ -14,3 +14,5 @@ Frontend mobile-first pou platfòm taksi a.
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 
 Backend Supabase project: `Taxi Platform Haiti`.
+
+Preview test
