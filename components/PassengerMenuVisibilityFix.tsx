@@ -12,7 +12,9 @@ export default function PassengerMenuVisibilityFix() {
       .nav-drawer .drawer-nav > button[data-passenger-core-action="true"]{display:grid!important;visibility:visible!important;opacity:1!important}
     `
     document.head.appendChild(style)
+    let applying = false
     const apply = () => {
+      if (applying) return
       const drawer = document.querySelector<HTMLElement>('.nav-drawer')
       if (!drawer) return
       const nav = drawer.querySelector<HTMLElement>('.drawer-nav')
@@ -31,16 +33,13 @@ export default function PassengerMenuVisibilityFix() {
       const payment = find(/paiement|peman/i)
       const help = find(/aide|èd|ed/i)
       const ordered = [profile, rides, payment].filter(Boolean) as HTMLButtonElement[]
-      let cursor: ChildNode | null = nav.firstChild
-      for (const button of ordered) {
-        nav.insertBefore(button, cursor)
-        cursor = button.nextSibling
-      }
-      if (language) {
-        nav.appendChild(language)
-      }
-      if (help) {
-        nav.appendChild(help)
+      const desired = [...ordered, language, help].filter(Boolean) as HTMLElement[]
+      const current = Array.from(nav.children)
+      const needsReorder = desired.some((element, index) => current[index] !== element)
+      if (needsReorder) {
+        applying = true
+        for (const element of desired) nav.appendChild(element)
+        applying = false
       }
     }
     apply()
