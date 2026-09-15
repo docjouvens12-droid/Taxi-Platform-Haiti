@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import AdminRideOperations from '../../components/AdminRideOperations'
 
 type Lang = 'fr' | 'ht'
 type Stats = { users:number; pendingDrivers:number; approvedDrivers:number; totalRides:number; activeRides:number; openSafety:number; platformFees:number }
@@ -9,14 +10,14 @@ type Perms = { is_admin:boolean; is_super_admin:boolean; can_manage_admins:boole
 
 const copy = {
   fr: {
-    title:'Tableau de bord administrateur', subtitle:'Vue générale de Taxi Platform Haiti', loading:'Chargement du tableau de bord…', denied:'Accès réservé aux administrateurs.',
+    title:'Tableau de bord administrateur', subtitle:'Vue générale de MOVI', loading:'Chargement du tableau de bord…', denied:'Accès réservé aux administrateurs.',
     restricted:'Certaines sections sont masquées selon les permissions attribuées à ce compte.', users:'Utilisateurs', pending:'Chauffeurs en attente', approved:'Chauffeurs approuvés', rides:'Trajets totaux', active:'Trajets actifs', fees:'Commissions plateforme',
     admins:'Administrateurs', adminsDesc:'Ajouter des administrateurs et définir leurs restrictions', drivers:'Chauffeurs', driversDesc:'Demandes, approbations et comptes chauffeurs', payments:'Paiements & commissions', paymentsDesc:'Transactions, méthodes de paiement et revenus plateforme',
     payouts:'Versements chauffeurs', payoutsDesc:'Suivi des montants dus et paiements chauffeurs', reconciliation:'Réconciliation', reconciliationDesc:'Vérifier les écarts et rapprocher les paiements', safety:'Sécurité', safetyDesc:'Alertes, incidents et événements de sécurité', system:'État du système', systemDesc:'Vérifier les services essentiels de la plateforme',
     refresh:'Actualiser', attention:'À surveiller', allGood:'Aucune alerte de sécurité ouverte', openSafety:'alerte(s) de sécurité ouverte(s)', limited:'ADMIN LIMITÉ', super:'SUPER ADMIN'
   },
   ht: {
-    title:'Dashboard administratè', subtitle:'Apèsi jeneral Taxi Platform Haiti', loading:'N ap chaje dashboard la…', denied:'Se administratè sèlman ki gen aksè.',
+    title:'Dashboard administratè', subtitle:'Apèsi jeneral MOVI', loading:'N ap chaje dashboard la…', denied:'Se administratè sèlman ki gen aksè.',
     restricted:'Gen kèk seksyon ki kache selon dwa Super Admin lan bay kont sa a.', users:'Itilizatè', pending:'Chofè k ap tann', approved:'Chofè apwouve', rides:'Total trajè', active:'Trajè aktif', fees:'Komisyon platfòm',
     admins:'Administratè yo', adminsDesc:'Ajoute administratè epi defini restriksyon yo', drivers:'Chofè yo', driversDesc:'Aplikasyon, apwobasyon ak kont chofè yo', payments:'Peman & komisyon', paymentsDesc:'Tranzaksyon, metòd peman ak revni platfòm',
     payouts:'Peman pou chofè', payoutsDesc:'Swiv kantite lajan pou peye chofè yo', reconciliation:'Rekonsilyasyon', reconciliationDesc:'Verifye diferans epi matche peman yo', safety:'Sekirite', safetyDesc:'Alèt, ensidan ak evènman sekirite', system:'Eta sistèm nan', systemDesc:'Verifye sèvis enpòtan platfòm nan',
@@ -87,7 +88,7 @@ export default function AdminDashboardPage(){
   ].filter(Boolean) as any[]
 
   return <main className="adminShell"><section className="adminWrap">
-    <header className="topbar"><div className="brand"><span>🚕</span><div><strong>Taxi Haiti</strong><small>{t.subtitle}</small></div></div><div className="topActions"><select value={lang} onChange={e=>changeLang(e.target.value as Lang)}><option value="fr">FR</option><option value="ht">KR</option></select><button className="logout" onClick={()=>void logout()}>↪</button></div></header>
+    <header className="topbar"><div className="brand"><span>🚕</span><div><strong>MOVI</strong><small>{t.subtitle}</small></div></div><div className="topActions"><select value={lang} onChange={e=>changeLang(e.target.value as Lang)}><option value="fr">FR</option><option value="ht">KR</option></select><button className="logout" onClick={()=>void logout()}>↪</button></div></header>
     <div className="hero"><div><p>{perms.is_super_admin?t.super:t.limited}</p><h1>{t.title}</h1></div><button onClick={()=>void loadStats()} disabled={busy}>↻ {t.refresh}</button></div>
     {!perms.is_super_admin&&<div className="restriction">🔐 {t.restricted}</div>}
     <div className="statsGrid">
@@ -97,6 +98,7 @@ export default function AdminDashboardPage(){
       {allow('can_view_payments')&&<article className="money"><span>💰</span><small>{t.fees}</small><strong>{stats.platformFees.toLocaleString('fr-FR',{maximumFractionDigits:2})} HTG</strong></article>}
     </div>
     {allow('can_manage_safety')&&<div className={stats.openSafety>0?'alert danger':'alert'}><span>{stats.openSafety>0?'⚠️':'✓'}</span><div><small>{t.attention}</small><strong>{stats.openSafety>0?`${stats.openSafety} ${t.openSafety}`:t.allGood}</strong></div></div>}
+    <AdminRideOperations lang={lang} canViewSafety={allow('can_manage_safety')} />
     <div className="navGrid">{nav.map(item=><button key={item.href} onClick={()=>window.location.assign(item.href)} className="navCard"><span className="icon">{item.icon}</span><div><strong>{item.title}</strong><small>{item.desc}</small></div>{item.badge?<b>{item.badge}</b>:<span className="arrow">›</span>}</button>)}</div>
   </section>
   <style jsx>{`

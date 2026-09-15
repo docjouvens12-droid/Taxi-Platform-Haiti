@@ -17,10 +17,11 @@ const dismissedKey = (driverId: string, rideId: string) => `taxi-driver-dismisse
 
 export default function DriverCompletedRideSummary() {
   const [summary, setSummary] = useState<Summary | null>(null)
+  const [driverNet, setDriverNet] = useState<number | null>(null)
   const [lang, setLang] = useState<'fr' | 'ht'>('fr')
 
   useEffect(() => {
-    if (window.location.pathname !== '/driver/dashboard') return
+    if (!['/driver/dashboard','/driver/dashboard-v2'].includes(window.location.pathname)) return
     setLang(localStorage.getItem('taxi-language') === 'ht' ? 'ht' : 'fr')
 
     let active = true
@@ -49,6 +50,9 @@ export default function DriverCompletedRideSummary() {
         if (age > 10 * 60 * 1000) return
       }
 
+      const { data: payment } = await supabase.from('payments').select('driver_net_htg').eq('ride_id', data.id).maybeSingle()
+      if (!active) return
+      setDriverNet(payment?.driver_net_htg == null ? null : Number(payment.driver_net_htg))
       setSummary(data as Summary)
     }
 
@@ -100,7 +104,7 @@ export default function DriverCompletedRideSummary() {
   async function closeSummary() {
     const { data: auth } = await supabase.auth.getUser()
     if (auth.user && summary) localStorage.setItem(dismissedKey(auth.user.id, summary.id), '1')
-    window.location.assign('https://taxi-platform-haiti.vercel.app/driver/dashboard')
+    setSummary(null)
   }
 
   return <div className="driver-summary-backdrop" role="dialog" aria-modal="true">
@@ -116,6 +120,7 @@ export default function DriverCompletedRideSummary() {
 
       <div className="driver-summary-metrics">
         <div><small>{isHt ? 'Pri final' : 'Prix final'}</small><strong>{fare}</strong></div>
+        {driverNet != null && <div><small>{isHt ? 'Revni ou' : 'Votre revenu'}</small><strong>{Math.round(driverNet).toLocaleString('fr-HT')} HTG</strong></div>}
         <div><small>{isHt ? 'Distans' : 'Distance'}</small><strong>{distance}</strong></div>
         <div><small>{isHt ? 'Dire' : 'Durée'}</small><strong>{duration}</strong></div>
         <div><small>{isHt ? 'Fini a' : 'Terminé à'}</small><strong>{time}</strong></div>

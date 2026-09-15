@@ -14,6 +14,8 @@ import PassengerAcceptedRideMiniMap from './PassengerAcceptedRideMiniMap'
 import PassengerMiniMapMetricsNarrow from './PassengerMiniMapMetricsNarrow'
 import PassengerRideStatusFlow from './PassengerRideStatusFlow'
 import PassengerPendingRideCancel from './PassengerPendingRideCancel'
+import PassengerActiveDriver from './PassengerActiveDriver'
+import RideCommunicationPanel from './RideCommunicationPanel'
 
 import DriverAvatarUploadPolish from './DriverAvatarUploadPolish'
 import DriverDashboardTitleHide from './DriverDashboardTitleHide'
@@ -55,13 +57,13 @@ import AdminDriverVehicleSnapshot from './AdminDriverVehicleSnapshot'
 
 export default function RouteScopedEnhancers() {
   const pathname = usePathname()
-  const isDriver = pathname.startsWith('/driver')
-  const isCleanDriverDashboard = pathname.startsWith('/driver/dashboard-v2')
-  const isAdmin = pathname.startsWith('/admin')
-  const isPassenger = !isDriver && !isAdmin
+  const isPassengerDashboard = pathname === '/' || pathname === '/movi' || pathname === '/passenger/dashboard'
+  const isCleanDriverDashboard = pathname === '/driver/dashboard-v2'
+  const isLegacyDriverDashboard = pathname === '/driver/dashboard'
+  const isAdminDrivers = pathname === '/admin/drivers'
 
   return <>
-    {isPassenger && <>
+    {isPassengerDashboard && <>
       <PassengerStableAvatarUpload />
       <PassengerProfileDetails />
       <PassengerTripsStableInline />
@@ -72,12 +74,16 @@ export default function RouteScopedEnhancers() {
       <PassengerTypedAddressPreview />
       <PassengerDashboardPaymentPanel />
       <PassengerAcceptedRideMiniMap />
+      <PassengerActiveDriver />
+      <RideCommunicationPanel />
       <PassengerMiniMapMetricsNarrow />
       <PassengerRideStatusFlow />
       <PassengerPendingRideCancel />
     </>}
 
     {isCleanDriverDashboard && <>
+      <RideCommunicationPanel />
+      <DriverCompletedRideSummary />
       <DriverCleanMenu />
       <DriverCleanMenuFinalGuard />
       <DriverCleanHelpTopics />
@@ -92,7 +98,7 @@ export default function RouteScopedEnhancers() {
       <DriverCleanLanguagePolish />
     </>}
 
-    {isDriver && !isCleanDriverDashboard && <>
+    {isLegacyDriverDashboard && <>
       <DriverAccessGate />
       <DriverAvatarUploadPolish />
       <DriverDashboardTitleHide />
@@ -117,7 +123,7 @@ export default function RouteScopedEnhancers() {
       <DriverLanguageSectionPolish />
     </>}
 
-    {isAdmin && <>
+    {isAdminDrivers && <>
       <AdminDriverApplicationProfileSnapshot />
       <AdminDriverVehicleSnapshot />
     </>}

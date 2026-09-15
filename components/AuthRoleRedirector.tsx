@@ -89,7 +89,7 @@ export default function AuthRoleRedirector() {
 
     // Prevent the passenger dashboard from flashing while an existing
     // authenticated session is being resolved to driver/admin/passenger.
-    if (path === '/' || path.startsWith('/passenger')) beginRoleRouting()
+    if (path === '/' || path === '/movi' || path.startsWith('/passenger')) beginRoleRouting()
     else finishRoleRouting()
 
     const routeCurrentUser = async () => {

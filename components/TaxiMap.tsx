@@ -12,6 +12,7 @@ type Props = {
   pickup: Point | null
   destination: Point | null
   routeGeometry: RouteGeometry | null
+  routeApproximate: boolean
 }
 
 type LiveTracking = {
@@ -29,7 +30,7 @@ type LiveTracking = {
   destination_longitude: number | null
 }
 
-export default function TaxiMap({ pickup }: Props) {
+export default function TaxiMap({ pickup, destination, routeGeometry, routeApproximate }: Props) {
   const requestRef = useRef(0)
   const [tracking, setTracking] = useState<LiveTracking | null>(null)
   const [driverDistanceKm, setDriverDistanceKm] = useState<number | null>(null)
@@ -134,13 +135,17 @@ export default function TaxiMap({ pickup }: Props) {
         target={tracking ? (tracking.ride_status === 'in_progress'
           ? (tracking.destination_latitude != null && tracking.destination_longitude != null ? { lat: tracking.destination_latitude, lng: tracking.destination_longitude } : null)
           : (tracking.pickup_latitude != null && tracking.pickup_longitude != null ? { lat: tracking.pickup_latitude, lng: tracking.pickup_longitude } : null)) : null}
-        route={driverRoutePolyline} rideKey={tracking ? tracking.ride_id + ':' + tracking.ride_status : ''} />
+        route={tracking ? driverRoutePolyline : routeGeometry}
+        previewDestination={tracking ? null : destination}
+        routeApproximate={tracking ? false : routeApproximate}
+        rideKey={tracking ? tracking.ride_id + ':' + tracking.ride_status : destination ? `preview:${destination.lat},${destination.lng}` : ''} />
 
       <div className="safe-map-shade" />
 
       {pickup && !tracking && (
         <div className="map-status-pill map-position-pill"><span>●</span><strong>{positionLabel}</strong></div>
       )}
+      {!tracking && destination && routeApproximate && <div className="preview-route-note">{lang === 'ht' ? 'Liy dirèk apwoksimatif · wout machin pa disponib' : 'Ligne directe approximative · itinéraire routier indisponible'}</div>}
 
       {tracking && tracking.driver_latitude != null && tracking.driver_longitude != null && (
         <div className="live-tracking-badge">
@@ -166,6 +171,7 @@ export default function TaxiMap({ pickup }: Props) {
         .route-map-badge span{color:#6c7d76}.live-tracking-badge span{color:#d9eee7}
         .map-status-pill{position:absolute;left:14px;bottom:58px;z-index:8;display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:999px;background:rgba(255,255,255,.94);border:1px solid rgba(15,112,90,.14);box-shadow:0 8px 20px rgba(16,32,51,.12);font-family:Inter,system-ui,sans-serif;pointer-events:none}
         .map-status-pill span{color:#0f705a;font-size:15px;line-height:1}.map-status-pill strong{font-size:9px;color:#314a42}
+        .preview-route-note{position:absolute;left:14px;right:14px;bottom:96px;z-index:9;background:rgba(255,255,255,.95);border-radius:10px;padding:7px 9px;color:#214b77;font-size:9px;font-weight:850;text-align:center;pointer-events:none}
         @media(max-width:420px){
           .route-map-badge,.live-tracking-badge{left:12px;right:12px;bottom:52px;min-height:50px;border-radius:15px}
           .map-status-pill{left:12px;bottom:52px}

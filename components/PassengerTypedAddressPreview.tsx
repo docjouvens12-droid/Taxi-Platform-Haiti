@@ -9,7 +9,7 @@ const locations: Array<{ keys: string[]; context: string }> = [
   { keys: ['delmas'], context: 'Delmas, Ouest, Haïti' },
   { keys: ['petion ville', 'petion-ville', 'petyonvil'], context: 'Pétion-Ville, Ouest, Haïti' },
   { keys: ['cap haitien', 'cap-haitien', 'okap'], context: 'Cap-Haïtien, Nord, Haïti' },
-  { keys: ['saint marc', 'saint-marc', 'senmak'], context: 'Saint-Marc, Artibonite, Haïti' },
+  { keys: ['saint marc', 'saint-marc', 'saint marq', 'senmak'], context: 'Saint-Marc, Artibonite, Haïti' },
   { keys: ['jacmel', 'jakmel'], context: 'Jacmel, Sud-Est, Haïti' },
   { keys: ['les cayes', 'okay'], context: 'Les Cayes, Sud, Haïti' },
 ]
@@ -78,12 +78,9 @@ export default function PassengerTypedAddressPreview() {
       }
 
       host.onclick = () => {
-        // Preserve the passenger's street when retrying the native search.
-        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
-        setter?.call(input, value)
-        input.dispatchEvent(new Event('input', { bubbles: true }))
-        input.dispatchEvent(new Event('change', { bubbles: true }))
-        input.focus()
+        // A preview has no precise coordinate. Open the map so the passenger
+        // can place the pin before we draw a route to this address.
+        routeCard.parentElement?.querySelector<HTMLButtonElement>('.movi-open-destination-map')?.click()
       }
 
       host.innerHTML = ''

@@ -336,4 +336,4 @@
   .shell .ride-copy strong{font-size:14px!important}
   .shell .ride-copy small{font-size:10px!important}
   .shell .ride-price{font-size:13px!important}
-}
+}.shell .movi-open-destination-map{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin:10px 0 4px;padding:12px;border:1px solid #c8e3d8;border-radius:14px;background:#effaf5;color:#0f705a;font-size:12px;font-weight:900;cursor:pointer}.shell .movi-open-destination-map:hover{background:#e3f5ed}

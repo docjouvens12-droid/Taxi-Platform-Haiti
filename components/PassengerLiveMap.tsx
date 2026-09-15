@@ -9,6 +9,8 @@ type Props = {
   driver: Point | null
   target: Point | null
   route: { type: 'LineString'; coordinates: number[][] } | null
+  previewDestination: Point | null
+  routeApproximate: boolean
   rideKey: string
 }
 
@@ -57,16 +59,26 @@ export default function PassengerLiveMap(props: Props) {
     const instance = map.current
     if (!ready || !instance || !car.current || !pin.current) return
     cancelAnimationFrame(frame.current)
-    const { driver, target, pickup, route, rideKey } = props
-    const destination = driver ? target : pickup
+    const { driver, target, pickup, route, rideKey, previewDestination } = props
+    const destination = driver ? target : previewDestination ?? pickup
     if (destination) pin.current.setLngLat([destination.lng, destination.lat]).addTo(instance)
     else pin.current.remove()
     const source = instance.getSource('driver-route') as GeoJSONSource
-    source.setData(driver && route ? { type: 'Feature', properties: {}, geometry: route } : { type: 'FeatureCollection', features: [] })
+    source.setData(route ? { type: 'Feature', properties: {}, geometry: route } : { type: 'FeatureCollection', features: [] })
+    instance.setPaintProperty('driver-route', 'line-color', driver ? '#0f705a' : '#2563eb')
+    instance.setPaintProperty('driver-route', 'line-dasharray', !driver && props.routeApproximate ? [2, 2] : undefined)
     if (!driver) {
       car.current.remove()
-      fitted.current = ''
-      if (pickup) instance.easeTo({ center: [pickup.lng, pickup.lat], zoom: 13 })
+      if (pickup && previewDestination && route?.coordinates.length) {
+        if (fitted.current !== rideKey) {
+          const lngs = route.coordinates.map(point => point[0]), lats = route.coordinates.map(point => point[1])
+          instance.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: { top: 80, bottom: 110, left: 45, right: 45 }, maxZoom: 16 })
+          fitted.current = rideKey
+        }
+      } else {
+        fitted.current = ''
+        if (pickup) instance.easeTo({ center: [pickup.lng, pickup.lat], zoom: 13 })
+      }
       return
     }
     const marker = car.current
@@ -88,7 +100,7 @@ export default function PassengerLiveMap(props: Props) {
       if (route) fitted.current = rideKey
     }
     return () => cancelAnimationFrame(frame.current)
-  }, [ready, props.driver?.lat, props.driver?.lng, props.target?.lat, props.target?.lng, props.pickup?.lat, props.pickup?.lng, props.route, props.rideKey])
+  }, [ready, props.driver?.lat, props.driver?.lng, props.target?.lat, props.target?.lng, props.previewDestination?.lat, props.previewDestination?.lng, props.pickup?.lat, props.pickup?.lng, props.route, props.routeApproximate, props.rideKey])
 
   return <><div ref={container} style={{ position: 'absolute', inset: 0 }} />{failed && <div role="status" style={{ padding: 30 }}>Carte indisponible. Réessayez en rechargeant la page.</div>}</>
 }

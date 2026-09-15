@@ -13,7 +13,7 @@ type PendingRide = {
 
 export default function PassengerPendingRideCancel() {
   const pathname = usePathname()
-  const isPassengerPage = pathname === '/' || pathname === '/passenger/dashboard'
+  const isPassengerPage = pathname === '/' || pathname === '/movi' || pathname === '/passenger/dashboard'
   const [ride, setRide] = useState<PendingRide | null>(null)
   const [busy, setBusy] = useState(false)
   const [lang, setLang] = useState<'fr' | 'ht'>('fr')

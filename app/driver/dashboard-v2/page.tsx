@@ -18,9 +18,11 @@ async function rpc<T=unknown>(name:string,body:Record<string,unknown>={}){const{
 export default function DriverDashboardV2Page(){
   const [authorized,setAuthorized]=useState(true),[busy,setBusy]=useState(false),[online,setOnline]=useState(false),[message,setMessage]=useState(''),[rating,setRating]=useState(0),[totalRides,setTotalRides]=useState(0)
   const [vehicle,setVehicle]=useState<Vehicle|null>(null),[activeRide,setActiveRide]=useState<Ride|null>(null),[available,setAvailable]=useState<Ride[]>([]),[offerRideId,setOfferRideId]=useState<string|null>(null),[offerSeconds,setOfferSeconds]=useState(20)
+  const [lang,setLang]=useState<'fr'|'ht'>('fr')
   const userIdRef=useRef<string|null>(null),tokenRef=useRef<string|null>(null),timeoutLockRef=useRef<string|null>(null)
 
   useEffect(()=>{const session=readSession();if(!session?.access_token){setMessage('Session chauffeur introuvable. Déconnectez-vous puis reconnectez-vous.');return}tokenRef.current=session.access_token;userIdRef.current=session.user?.id??null;void refreshDashboard(false)},[])
+  useEffect(()=>{const sync=()=>setLang(localStorage.getItem('taxi-language')==='ht'?'ht':'fr');sync();const timer=window.setInterval(sync,1000);return()=>window.clearInterval(timer)},[])
   useEffect(()=>{if(!online||!userIdRef.current)return;void loadRides(userIdRef.current,true);const timer=window.setInterval(()=>void loadRides(userIdRef.current,true),1000);return()=>window.clearInterval(timer)},[online])
   useEffect(()=>{if(!online||activeRide||available.length===0){setOfferRideId(null);setOfferSeconds(20);return}const first=available[0];if(offerRideId!==first.id){timeoutLockRef.current=null;setOfferRideId(first.id);setOfferSeconds(20)}},[online,activeRide,available,offerRideId])
   useEffect(()=>{if(!offerRideId||activeRide||!online)return;if(offerSeconds<=0){const ride=available.find(item=>item.id===offerRideId);if(!ride||timeoutLockRef.current===ride.id)return;timeoutLockRef.current=ride.id;void rideAction('timeout',ride);return}const timer=window.setTimeout(()=>setOfferSeconds(current=>Math.max(0,current-1)),1000);return()=>window.clearTimeout(timer)},[offerRideId,offerSeconds,activeRide,online,available])
@@ -31,7 +33,7 @@ export default function DriverDashboardV2Page(){
   async function toggleOnline(){if(busy)return;setBusy(true);setMessage('');const next=!online;try{await rpc('set_driver_online',{p_online:next});setOnline(next);setMessage(next?'Vous êtes maintenant en ligne.':'Vous êtes maintenant hors ligne.');await loadRides(userIdRef.current,next)}catch(e){setMessage(e instanceof Error?e.message:'Impossible de modifier votre disponibilité.')}finally{setBusy(false)}}
   async function rideAction(action:'accept'|'reject'|'timeout'|'arriving'|'start'|'complete',ride:Ride){if(busy&&action!=='timeout')return;if(action==='accept'&&!vehicle){setMessage('Aucun véhicule actif n’est associé à ce compte.');return}if(action!=='timeout')setBusy(true);setMessage('');try{if(action==='accept')await rpc('accept_ride',{p_ride_id:ride.id,p_vehicle_id:vehicle!.id});if(action==='reject')await rpc('reject_ride_request',{p_ride_id:ride.id,p_reason:'rejected'});if(action==='timeout')await rpc('reject_ride_request',{p_ride_id:ride.id,p_reason:'timeout'});if(action==='arriving')await rpc('mark_driver_arriving',{p_ride_id:ride.id});if(action==='start')await rpc('start_ride',{p_ride_id:ride.id});if(action==='complete')await rpc('complete_ride',{p_ride_id:ride.id,p_final_fare_htg:ride.estimated_fare_htg??0,p_payment_method:'cash'});if(action==='timeout')setMessage('Temps écoulé. La demande est proposée à un autre chauffeur.');await refreshDashboard(false)}catch(e){setMessage(e instanceof Error?e.message:'Impossible de mettre à jour le trajet.')}finally{if(action!=='timeout')setBusy(false)}}
 
-  const nextAction=activeRide?.status==='accepted'?{key:'arriving' as const,label:'Je suis arrivé'}:activeRide?.status==='driver_arriving'?{key:'start' as const,label:'Commencer le trajet'}:activeRide?.status==='in_progress'?{key:'complete' as const,label:'Terminer le trajet'}:null
+  const nextAction=activeRide?.status==='accepted'?{key:'arriving' as const,label:lang==='ht'?'Mwen rive':'Je suis arrivé'}:activeRide?.status==='driver_arriving'?{key:'start' as const,label:lang==='ht'?'Kòmanse trajè a':'Commencer le trajet'}:activeRide?.status==='in_progress'?{key:'complete' as const,label:lang==='ht'?'Fini trajè a':'Terminer le trajet'}:null
   if(!authorized)return <main className="drv2-page"><div className="drv2-shell"><div className="drv2-access"><div className="drv2-logo">M</div><h1>Accès chauffeur</h1><p>{message||'Ce compte n’est pas un chauffeur approuvé.'}</p></div></div></main>
 
   const incomingRide=!activeRide&&online?(available[0]??null):null
@@ -46,6 +48,7 @@ export default function DriverDashboardV2Page(){
         <div className="drv2-offer-head"><span className="drv2-service-chip">{incomingRide.service_type??'Standard'}</span><span className={offerSeconds<=5?'drv2-countdown danger':'drv2-countdown'}>{offerSeconds}s</span></div>
         <div className="drv2-offer-main"><strong>{incomingRide.estimated_duration_min??'—'} min <span>({incomingRide.estimated_distance_km??'—'} km)</span></strong><em>{incomingRide.estimated_fare_htg??'—'} HTG</em></div>
         <div className="drv2-offer-route"><div><b>●</b><span><small>DÉPART</small><strong>{incomingRide.pickup_address}</strong></span></div><div><b>■</b><span><small>DESTINATION</small><strong>{destination.city}</strong>{destination.street&&<em>{destination.street}</em>}</span></div></div>
+        {message&&<div className="drv2-message" role="status">{message}</div>}
         <div className="drv2-offer-actions"><button type="button" className="reject" onClick={()=>rideAction('reject',incomingRide)} disabled={busy}>Refuser</button><button type="button" className="accept" onClick={()=>rideAction('accept',incomingRide)} disabled={busy||!vehicle}>Accepter</button></div>
       </section>
     </main>
@@ -53,14 +56,21 @@ export default function DriverDashboardV2Page(){
 
   if(activeRide){
     const destination=destinationParts(activeRide.destination_address)
+    const phase=activeRide.status==='accepted'?1:activeRide.status==='driver_arriving'?2:3
+    const heading=phase===1?(lang==='ht'?'Ale pran pasaje a':'Allez chercher le passager'):phase===2?(lang==='ht'?'Ou rive nan pwen pickup la':'Vous êtes au point de prise en charge'):(lang==='ht'?'Ale nan destinasyon an':'En route vers la destination')
+    const target=phase===3?activeRide.destination_address:activeRide.pickup_address
+    const stages=lang==='ht'?['Aksepte','Rive','Sou wout','Fini']:['Accepté','Arrivé','En route','Terminé']
     return <main className="drv2-page drv2-ride-mode drv2-active-mode">
       <header className="drv2-offer-top"><div className="drv2-offer-brand"><div className="drv2-logo">M</div><strong>MOVI</strong></div><div className="drv2-rating"><strong>★ {rating.toFixed(2)}</strong><span>{totalRides} trajets</span></div></header>
       <DriverCleanUberBoltHome previewRide={activeRide as any}/>
       <section className="drv2-offer-sheet drv2-active-sheet">
         <div className="drv2-sheet-handle"/>
-        <span className="drv2-section-label">TRAJET EN COURS</span>
-        <h2><span>{destination.city}</span>{destination.street&&<span>{destination.street}</span>}</h2>
+        <span className="drv2-section-label">{lang==='ht'?'TRAJÈ AKTIF':'TRAJET ACTIF'}</span>
+        <h2>{heading}</h2>
+        <p className="drv2-active-target"><span>{phase===3?'🏁':'📍'}</span>{phase===3?<><strong>{destination.city}</strong>{destination.street&&<small>{destination.street}</small>}</>:<strong>{target}</strong>}</p>
+        <div className="drv2-active-stages" aria-label={lang==='ht'?'Etap trajè a':'Étapes du trajet'}>{stages.map((stage,index)=><span key={stage} className={index<phase?'done':''}>{index<phase?'✓':index+1}<small>{stage}</small></span>)}</div>
         <div className="drv2-active-meta"><span>{activeRide.estimated_distance_km??'—'} km</span><span>{activeRide.estimated_duration_min??'—'} min</span><span>{activeRide.estimated_fare_htg??'—'} HTG</span></div>
+        {message&&<div className="drv2-message" role="status">{message}</div>}
         {nextAction&&<button className="drv2-active-next" disabled={busy} onClick={()=>rideAction(nextAction.key,activeRide)}>{nextAction.label}</button>}
       </section>
     </main>
