@@ -6,7 +6,7 @@ const SEARCH_TYPES = 'address,street,neighborhood,locality,place,district,region
 const PRECISE_TYPES = new Set(['address', 'street'])
 
 const KNOWN_CITY_FALLBACKS: Array<{ keys: string[]; label: string; center: [number, number] }> = [
-  { keys: ['les gonaives', 'gonaives', 'gonayiv'], label: 'Les Gonaïves, Artibonite, Haïti', center: [-72.6843, 19.4475] },
+  { keys: ['les gonaives', 'gonaives', 'gonayiv'], label: 'Les Gonaives, Artibonite, Haiti', center: [-72.6843, 19.4475] },
   { keys: ['port au prince', 'potoprens'], label: 'Port-au-Prince, Ouest, Haïti', center: [-72.3364, 18.5392] },
   { keys: ['delmas'], label: 'Delmas, Ouest, Haïti', center: [-72.2962, 18.5447] },
   { keys: ['petion ville', 'petion-ville', 'petyonvil'], label: 'Pétion-Ville, Ouest, Haïti', center: [-72.2852, 18.5125] },
@@ -194,6 +194,18 @@ export async function GET(request: NextRequest) {
     }
 
     let results = Array.from(deduped.values())
+    if (!results.length && addressLike) {
+      const normalizedAddress = normalize(q)
+      const city = KNOWN_CITY_FALLBACKS.find((item) => item.keys.some((key) => normalizedAddress.includes(normalize(key))))
+      if (city) {
+        results = [{
+          id: `address-fallback-${normalize(q).replace(/\s+/g, '-')}`,
+          label: `${city.label}\n${q}`,
+          center: city.center,
+          featureType: 'street',
+        }]
+      }
+    }
     const normalizedQuery = normalize(q)
     const tokens = queryTokens(q)
 
