@@ -163,9 +163,10 @@ export default function HomePage() {
     }
 
     const normalizedQuery = query.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-    if (normalizedQuery.includes('rue christophe') && normalizedQuery.includes('gonaives')) {
-      setDestinationDisplay({ city: 'Les Gonaives, Artibonite, Haiti', street: '31. rue Christophe' })
-      setSearchResults([{ id: 'gonaives-rue-christophe', label: 'Les Gonaives, Artibonite, Haiti\n31. rue Christophe', center: [-72.6843, 19.4475] }])
+    if (normalizedQuery.includes('gonaives')) {
+      const street = query.replace(/\s*gona[iï]ves\s*$/i, '').replace(/^\s*,\s*/, '').trim()
+      setDestinationDisplay({ city: 'Les Gonaives, Artibonite, Haiti', street: street || 'Centre-ville' })
+      setSearchResults([{ id: `gonaives-${normalizedQuery}`, label: `Les Gonaives, Artibonite, Haiti\n${street || 'Centre-ville'}`, center: [-72.6843, 19.4475] }])
       setSearchMessage('')
       setSearchBusy(false)
       return
