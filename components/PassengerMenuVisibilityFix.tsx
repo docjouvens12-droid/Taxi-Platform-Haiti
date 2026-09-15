@@ -17,7 +17,7 @@ export default function PassengerMenuVisibilityFix() {
       const buttons = drawer ? Array.from(drawer.querySelectorAll<HTMLButtonElement>('.drawer-nav > button')) : []
       for (const button of buttons) {
         const text = (button.textContent || '').toLowerCase()
-        if (text.includes('profil') || text.includes('pwofil') || text.includes('paiement') || text.includes('peman')) {
+        if (text.includes('profil') || text.includes('pwofil') || text.includes('paiement') || text.includes('peman') || text.includes('aide') || text.includes('èd')) {
           button.dataset.passengerCoreAction = 'true'
         }
       }
