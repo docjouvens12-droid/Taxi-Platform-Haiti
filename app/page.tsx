@@ -444,7 +444,7 @@ export default function HomePage() {
         <button className="active" onClick={() => openPanel('home')}><span>🏠</span>{t.home}<b>›</b></button>
         <button onClick={() => openPanel('rides')}><span>🧾</span>{t.myRides}<b>›</b></button>
         <button onClick={() => openPanel('profile')}><span>👤</span>{t.profile}<b>›</b></button>
-        <button onClick={() => openPanel('driver')}><span>🚘</span>{t.becomeDriver}<b>›</b></button>
+        <button onClick={() => openPanel('payment')}><span>💳</span>{t.payment}<b>›</b></button>
         <div className="drawer-language"><span>🌐</span><div><small>{t.language}</small><LanguageMenu lang={lang} onChange={changeLanguage} /></div></div>
         <button onClick={() => openPanel('help')}><span>❓</span>{t.help}<b>›</b></button>
       </nav>

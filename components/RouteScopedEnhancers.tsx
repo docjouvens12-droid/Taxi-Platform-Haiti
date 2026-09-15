@@ -13,6 +13,7 @@ import PassengerMenuCompactPolish from './PassengerMenuCompactPolish'
 import PassengerMenuFinalConsistency from './PassengerMenuFinalConsistency'
 import PassengerMenuIconDedupPolish from './PassengerMenuIconDedupPolish'
 import PassengerRideHistoryMenuPolish from './PassengerRideHistoryMenuPolish'
+import PassengerMenuVisibilityFix from './PassengerMenuVisibilityFix'
 import PassengerDashboardPaymentPanel from './PassengerDashboardPaymentPanel'
 import PassengerAcceptedRideMiniMap from './PassengerAcceptedRideMiniMap'
 import PassengerMiniMapMetricsNarrow from './PassengerMiniMapMetricsNarrow'
@@ -76,6 +77,7 @@ export default function RouteScopedEnhancers() {
       <PassengerMenuFinalConsistency />
       <PassengerMenuIconDedupPolish />
       <PassengerRideHistoryMenuPolish />
+      <PassengerMenuVisibilityFix />
       <PassengerDashboardPaymentPanel />
       <PassengerAcceptedRideMiniMap />
       <PassengerMiniMapMetricsNarrow />
