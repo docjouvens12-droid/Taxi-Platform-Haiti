@@ -31,7 +31,8 @@ function completeLabel(props: any, fallbackName = '') {
   const placeFormatted = String(props?.place_formatted || '').trim()
   if (fullAddress && normalize(fullAddress) !== normalize(name)) return fullAddress
   if (name && placeFormatted && !normalize(placeFormatted).startsWith(normalize(name))) return `${name}, ${placeFormatted}`
-  return fullAddress || placeFormatted || name || 'Destination'
+  const label = fullAddress || placeFormatted || name || 'Destination'
+  return /haiti/i.test(label) ? label : `${label}, Haiti`
 }
 
 function looksLikeStreetAddress(query: string) {
