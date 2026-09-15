@@ -60,3 +60,5 @@ body>div,body>main{max-width:100%}
   .auth-brand{margin-bottom:18px}
   .auth-card h1{font-size:24px;margin-bottom:19px}
 }
+
+.search-results button strong{white-space:pre-line!important}

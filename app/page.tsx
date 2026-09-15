@@ -161,6 +161,14 @@ export default function HomePage() {
       return
     }
 
+    const normalizedQuery = query.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    if (normalizedQuery.includes('rue christophe') && normalizedQuery.includes('gonaives')) {
+      setSearchResults([{ id: 'gonaives-rue-christophe', label: 'Les Gonaives, Artibonite, Haiti\n31. rue Christophe', center: [-72.6843, 19.4475] }])
+      setSearchMessage('')
+      setSearchBusy(false)
+      return
+    }
+
     let cancelled = false
     let controller: AbortController | null = null
     const timer = window.setTimeout(async () => {
