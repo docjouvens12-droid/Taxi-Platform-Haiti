@@ -43,11 +43,9 @@ export default function PassengerMenuVisibilityFix() {
       }
     }
     apply()
-    // The drawer is mounted on demand; briefly check for it without a permanent
-    // MutationObserver, which can fight other legacy menu polish scripts.
-    const timer = window.setInterval(apply, 700)
-    const stop = window.setTimeout(() => window.clearInterval(timer), 12000)
-    return () => { window.clearInterval(timer); window.clearTimeout(stop); style.remove() }
+    // Keep the requested order after legacy menu scripts finish their updates.
+    const timer = window.setInterval(apply, 250)
+    return () => { window.clearInterval(timer); style.remove() }
   }, [])
   return null
 }
