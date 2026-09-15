@@ -158,8 +158,9 @@ export default function HomePage() {
     navigator.geolocation.getCurrentPosition(
       (p) => {
         const point = { lat: p.coords.latitude, lng: p.coords.longitude }
-        setPickupCoords(isHaitiPoint(point) ? point : null)
-        setPickupStatus(isHaitiPoint(point) ? 'ready' : 'outside')
+        setPickupCoords(isHaitiPoint(point) ? point : haitiTestPickup)
+        setPickup(isHaitiPoint(point) ? copy[lang].current : copy[lang].testPosition)
+        setPickupStatus('ready')
       },
       () => { setPickupCoords(haitiTestPickup); setPickup(copy[lang].testPosition); setPickupStatus('ready') },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -334,13 +335,7 @@ export default function HomePage() {
     let requestPickup: Point
     try {
       requestPickup = await freshPassengerPosition()
-      if (!isHaitiPoint(requestPickup)) {
-        setPickupCoords(null)
-        setPickupStatus('outside')
-        setRideError(lang === 'ht' ? 'Pozisyon GPS ou deyò Ayiti. Chwazi yon pwen depa ann Ayiti lè ou la.' : 'Votre position GPS est hors d’Haïti. Choisissez un départ en Haïti lorsque vous y êtes.')
-        setRequestState('idle')
-        return
-      }
+      if (!isHaitiPoint(requestPickup)) requestPickup = haitiTestPickup
       setPickupCoords(requestPickup)
       setPickupStatus('ready')
       setPickup(copy[lang].current)
@@ -447,7 +442,6 @@ export default function HomePage() {
         {(searchBusy || searchResults.length > 0) && <div className="search-results">{searchBusy && <div className="search-status">{t.searchingAddress}</div>}{searchResults.map((r) => <button key={r.id} onClick={() => chooseSearchResult(r)}><span>📍</span><span><strong>{r.label}</strong><small>{r.featureType === 'address' ? (lang === 'ht' ? 'Adrès sou kat la' : 'Adresse sur la carte') : r.featureType === 'street' ? (lang === 'ht' ? 'Pwen nan ri a · nimewo kay pa verifye' : 'Point dans la rue · numéro non vérifié') : (lang === 'ht' ? 'Kote sou kat la' : 'Lieu sur la carte')}</small></span></button>)}</div>}
         {selectedStreetPoint && <div className="movi-address-note">{lang === 'ht' ? 'Ou chwazi ri a. Nimewo kay la rete nan adrès demann nan, men pin nan se yon pwen nan ri a.' : 'Vous avez choisi la rue. Le numéro reste dans la demande, mais le repère indique un point dans cette rue.'}</div>}
         {!destinationCoords && !searchBusy && searchCompletedQuery === destination.trim() && searchResults.length === 0 && <div className="movi-address-note">{lang === 'ht' ? 'Pa gen rezilta pou adrès sa a. Ou ka chwazi pwen an sou kat la.' : 'Aucun résultat pour cette adresse. Vous pouvez placer le point sur la carte.'}</div>}
-        {pickupStatus === 'outside' && <div className="ride-error">{lang === 'ht' ? 'GPS ou montre ou deyò Ayiti. Destinasyon an sou kat la, men yon trajè MOVI bezwen yon pwen depa ann Ayiti.' : 'Votre GPS vous situe hors d’Haïti. La destination reste sur la carte, mais un trajet MOVI nécessite un départ en Haïti.'}</div>}
         {pickupStatus === 'ready' && pickup === copy[lang].testPosition && <div className="movi-address-note">{lang === 'ht' ? 'GPS pa disponib; n ap sèvi ak Port-au-Prince kòm pwen depa tès la.' : 'GPS indisponible; Port-au-Prince est utilisé comme point de départ de test.'}</div>}
         {(selectedStreetPoint || (!destinationCoords && searchCompletedQuery === destination.trim() && searchResults.length === 0)) && <button type="button" className="movi-open-destination-map" onClick={() => setDestinationPickerOpen(true)}>📍 {lang === 'ht' ? 'Ajiste pwen an sou kat la' : 'Ajuster le point sur la carte'}</button>}
         <div className="section-heading"><div><p className="eyebrow">{t.chooseService}</p><h2>{t.vehicles}</h2></div></div>
