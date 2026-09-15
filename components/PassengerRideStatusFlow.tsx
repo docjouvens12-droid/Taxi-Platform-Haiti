@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import PassengerArrivalNotice from './PassengerArrivalNotice'
 import { supabase } from '../lib/supabase'
 
 type RideStatus = 'requested' | 'accepted' | 'driver_arriving' | 'in_progress' | 'completed' | 'cancelled'
@@ -170,6 +171,7 @@ export default function PassengerRideStatusFlow() {
 
   return createPortal(
     <div className={`movi-passenger-flow-card ${isTerminal ? 'terminal' : ''} ${driverArrived ? 'arrived' : ''}`} aria-live="polite">
+      <PassengerArrivalNotice rideId={ride.id} status={status} ht={ht} />
       <style>{`
         .movi-passenger-ride-active .searching-card{display:none!important}
         .movi-passenger-flow-card{margin:12px 0 4px;padding:14px;border-radius:20px;background:#f7fbf9;border:1px solid #dbeae4;box-shadow:0 10px 28px rgba(15,112,90,.08);font-family:Inter,system-ui,sans-serif}
