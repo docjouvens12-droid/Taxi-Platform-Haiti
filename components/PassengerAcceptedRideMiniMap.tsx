@@ -26,7 +26,7 @@ export default function PassengerAcceptedRideMiniMap() {
   const [rawTracking, setTracking] = useState<Tracking | null>(null)
   const trackable = !!ride && ['accepted', 'driver_arriving', 'in_progress'].includes(ride.status)
   const tracking = useMemo(() => trackable && rawTracking?.ride_id === ride?.id ? { ...rawTracking, ride_status: ride.status as Tracking['ride_status'] } : null, [trackable, rawTracking, ride?.id, ride?.status])
-  const mapVisible = !!tracking && tracking.ride_status !== 'driver_arriving'
+  const mapVisible = !!tracking
   const [metrics, setMetrics] = useState<RouteMetrics | null>(null)
   const [ht, setHt] = useState(false)
   const [target, setTarget] = useState<HTMLElement | null>(null)
@@ -66,7 +66,7 @@ export default function PassengerAcceptedRideMiniMap() {
 
   async function renderTracking(row: Tracking) {
     const map = mapRef.current
-    if (!map || row.ride_status === 'driver_arriving') return
+    if (!map) return
     if (row.driver_latitude == null || row.driver_longitude == null) return
     if (row.ride_status === 'in_progress' ? row.destination_latitude == null || row.destination_longitude == null : row.pickup_latitude == null || row.pickup_longitude == null) return
     const dLat = Number(row.driver_latitude), dLng = Number(row.driver_longitude)
@@ -143,7 +143,7 @@ export default function PassengerAcceptedRideMiniMap() {
   },[target, mapVisible])
 
   useEffect(() => {
-    if (!tracking || tracking.ride_status === 'driver_arriving') return
+    if (!tracking) return
     const map = mapRef.current
     if (!map) return
     if (!map.isStyleLoaded()) { map.once('load',()=>void renderTracking(tracking)); return }
