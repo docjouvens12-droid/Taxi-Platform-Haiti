@@ -201,7 +201,8 @@ export async function GET(request: NextRequest) {
       if (precise.length) results = precise
       else {
         const fallback = knownCityFallback(q)
-        results = fallback ? [{ ...fallback, id: `typed-${normalize(q).replace(/\s+/g, '-')}`, label: q.trim(), featureType: 'locality' }] : []
+        const center = fallback?.center ?? [-72.65, 19.05] as [number, number]
+        results = [{ id: `typed-${normalize(q).replace(/\s+/g, '-')}`, label: q.trim(), center, featureType: 'locality' }]
       }
     } else {
       const relevant = results.filter(result => {
