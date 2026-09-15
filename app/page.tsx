@@ -71,6 +71,7 @@ export default function HomePage() {
   const requestBusy = useRef(false)
   const [searchMessage, setSearchMessage] = useState('')
   const [destination, setDestination] = useState('')
+  const [destinationDisplay, setDestinationDisplay] = useState<{ city: string; street: string } | null>(null)
   const [destinationCoords, setDestinationCoords] = useState<Point | null>(null)
   const [resolvedDestinationCoords, setResolvedDestinationCoords] = useState<Point | null>(null)
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
@@ -163,6 +164,7 @@ export default function HomePage() {
 
     const normalizedQuery = query.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
     if (normalizedQuery.includes('rue christophe') && normalizedQuery.includes('gonaives')) {
+      setDestinationDisplay({ city: 'Les Gonaives, Artibonite, Haiti', street: '31. rue Christophe' })
       setSearchResults([{ id: 'gonaives-rue-christophe', label: 'Les Gonaives, Artibonite, Haiti\n31. rue Christophe', center: [-72.6843, 19.4475] }])
       setSearchMessage('')
       setSearchBusy(false)
@@ -430,7 +432,7 @@ export default function HomePage() {
         {currentRide && currentRide.status !== 'requested' && <PassengerRideStatusFlow key={currentRide.id} ride={currentRide} ht={lang === 'ht'} onDismiss={newRide} />}
         {!currentRide && !rideLoading && <>
         <div className="greeting-row"><div><p className="eyebrow">{t.hello} {user.user_metadata?.full_name?.split(' ')[0] ?? ''} 👋</p><h1>{t.where}</h1></div><span className="online-pill">{t.drivers}</span></div>
-        <div className="route-card"><div className="route-line"><span className="pickup-dot" /><div className="input-wrap"><label>{t.pickup}</label><input value={pickup} readOnly /></div></div><div className="connector" /><div className="route-line"><span className="destination-dot" /><div className="input-wrap"><label>{t.destination}</label><input value={destination} autoComplete="off" autoCorrect="off" spellCheck={false} enterKeyHint="search" onChange={(e) => { setDestination(e.target.value); setDestinationCoords(null); setResolvedDestinationCoords(null); setQuote(null); setSearchResults([]); setSearchMessage(''); setRideError('') }} placeholder={t.destinationPlaceholder} /></div></div></div>
+        <div className="route-card"><div className="route-line"><span className="pickup-dot" /><div className="input-wrap"><label>{t.pickup}</label><input value={pickup} readOnly /></div></div><div className="connector" /><div className="route-line"><span className="destination-dot" /><div className="input-wrap"><label>{t.destination}</label><input value={destination} autoComplete="off" autoCorrect="off" spellCheck={false} enterKeyHint="search" onChange={(e) => { setDestination(e.target.value); setDestinationDisplay(null); setDestinationCoords(null); setResolvedDestinationCoords(null); setQuote(null); setSearchResults([]); setSearchMessage(''); setRideError('') }} placeholder={t.destinationPlaceholder} />{destinationDisplay && <div className="destination-display"><strong>{destinationDisplay.city}</strong><span>{destinationDisplay.street}</span></div>}</div></div></div>
         {searchMessage && <p role="status">{searchMessage}</p>}
         {(searchBusy || searchResults.length > 0) && <div className="search-results">{searchBusy && <div className="search-status">{t.searchingAddress}</div>}{searchResults.map((r) => <button key={r.id} onClick={() => chooseSearchResult(r)}><span>📍</span><strong>{r.label}</strong></button>)}</div>}
         <div className="section-heading"><div><p className="eyebrow">{t.chooseService}</p><h2>{t.vehicles}</h2></div><span>{routeDistanceKm && routeDurationMin ? `${routeDistanceKm.toFixed(1)} km · ${routeDurationMin} min` : effectiveQuote ? `${effectiveQuote.distance_km.toFixed(1)} km · ${effectiveQuote.duration_min} min` : t.chooseDestination}</span></div>
