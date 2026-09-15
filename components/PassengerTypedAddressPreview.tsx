@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { destinationLines } from '../lib/destination-label'
 
 const locations: Array<{ keys: string[]; context: string }> = [
   { keys: ['les gonaives', 'gonaives', 'gonayiv'], context: 'Les Gonaïves, Artibonite, Haïti' },
@@ -77,9 +78,9 @@ export default function PassengerTypedAddressPreview() {
       }
 
       host.onclick = () => {
-        // This is only a broad-city fallback when Mapbox has no precise result.
+        // Preserve the passenger's street when retrying the native search.
         const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
-        setter?.call(input, context)
+        setter?.call(input, value)
         input.dispatchEvent(new Event('input', { bubbles: true }))
         input.dispatchEvent(new Event('change', { bubbles: true }))
         input.focus()
@@ -92,9 +93,10 @@ export default function PassengerTypedAddressPreview() {
       const copy = document.createElement('div')
       copy.className = 'passenger-typed-address-copy'
       const top = document.createElement('strong')
-      top.textContent = value
+      const formatted = destinationLines(value, context)
+      top.textContent = formatted.city
       const bottom = document.createElement('small')
-      bottom.textContent = context
+      bottom.textContent = formatted.street
       copy.append(top, bottom)
       host.append(pin, copy)
 
@@ -132,6 +134,7 @@ export default function PassengerTypedAddressPreview() {
   }, [])
 
   return <style>{`
+    .search-results button strong{white-space:pre-line;overflow-wrap:anywhere}
     .passenger-typed-address-preview{
       width:100%;
       margin:10px 0 4px;

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { destinationLines } from '../../../lib/destination-label'
 
 type Result = { id: string; label: string; center: [number, number]; featureType?: string }
 
@@ -75,12 +76,7 @@ function contextFromLabel(label: string) {
 }
 
 function streetLine(query: string) {
-  let value = query.trim().replace(/\s+/g, ' ')
-  value = value.replace(/,?\s*(saint[- ]?marc|gona[iï]ves|les gona[iï]ves|port[- ]au[- ]prince|cap[- ]ha[iï]tien|jacmel|les cayes|p[eé]tion[- ]ville|delmas)\b.*$/i, '')
-  value = value.replace(/,?\s*(ha[iï]ti|artibonite|ouest|nord|sud|centre|d[eé]partement)\b/gi, '')
-  value = value.replace(/^\s*[,.-]+|[,.-]+\s*$/g, '').trim()
-  const match = value.match(/^(\d+[a-z]?)\s*[,. -]+(.+)$/i)
-  return match ? `${match[1]}, ${match[2].trim()}` : value
+  return destinationLines(query, knownCityFallback(query)?.label ?? '').street
 }
 
 function knownCityFallback(query: string): Result | null {
@@ -267,7 +263,7 @@ export async function GET(request: NextRequest) {
 
     const displayResults = results.slice(0, addressLike ? 8 : 6).map(result => ({
       ...result,
-      label: addressLike ? `${contextFromLabel(result.label)}\n${streetLine(q)}` : result.label,
+      label: addressLike ? `${knownCityFallback(q)?.label ?? contextFromLabel(result.label)}\n${streetLine(q)}` : result.label,
     }))
 
     return NextResponse.json({ results: displayResults, query: q, precise: addressLike, fallback: addressLike && results.some(result => result.id.startsWith('fallback-')) })
