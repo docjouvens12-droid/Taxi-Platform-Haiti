@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { destinationLines } from '../lib/destination-label'
 
 const locations: Array<{ keys: string[]; context: string }> = [
   { keys: ['les gonaives', 'gonaives', 'gonayiv'], context: 'Les Gonaïves, Artibonite, Haïti' },
@@ -8,7 +9,7 @@ const locations: Array<{ keys: string[]; context: string }> = [
   { keys: ['delmas'], context: 'Delmas, Ouest, Haïti' },
   { keys: ['petion ville', 'petion-ville', 'petyonvil'], context: 'Pétion-Ville, Ouest, Haïti' },
   { keys: ['cap haitien', 'cap-haitien', 'okap'], context: 'Cap-Haïtien, Nord, Haïti' },
-  { keys: ['saint marc', 'saint-marc', 'senmak'], context: 'Saint-Marc, Artibonite, Haïti' },
+  { keys: ['saint marc', 'saint-marc', 'saint marq', 'senmak'], context: 'Saint-Marc, Artibonite, Haïti' },
   { keys: ['jacmel', 'jakmel'], context: 'Jacmel, Sud-Est, Haïti' },
   { keys: ['les cayes', 'okay'], context: 'Les Cayes, Sud, Haïti' },
 ]
@@ -77,12 +78,9 @@ export default function PassengerTypedAddressPreview() {
       }
 
       host.onclick = () => {
-        // This is only a broad-city fallback when Mapbox has no precise result.
-        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
-        setter?.call(input, context)
-        input.dispatchEvent(new Event('input', { bubbles: true }))
-        input.dispatchEvent(new Event('change', { bubbles: true }))
-        input.focus()
+        // A preview has no precise coordinate. Open the map so the passenger
+        // can place the pin before we draw a route to this address.
+        routeCard.parentElement?.querySelector<HTMLButtonElement>('.movi-open-destination-map')?.click()
       }
 
       host.innerHTML = ''
@@ -92,9 +90,10 @@ export default function PassengerTypedAddressPreview() {
       const copy = document.createElement('div')
       copy.className = 'passenger-typed-address-copy'
       const top = document.createElement('strong')
-      top.textContent = value
+      const formatted = destinationLines(value, context)
+      top.textContent = formatted.city
       const bottom = document.createElement('small')
-      bottom.textContent = context
+      bottom.textContent = formatted.street
       copy.append(top, bottom)
       host.append(pin, copy)
 
@@ -132,6 +131,7 @@ export default function PassengerTypedAddressPreview() {
   }, [])
 
   return <style>{`
+    .search-results button strong{white-space:pre-line;overflow-wrap:anywhere}
     .passenger-typed-address-preview{
       width:100%;
       margin:10px 0 4px;

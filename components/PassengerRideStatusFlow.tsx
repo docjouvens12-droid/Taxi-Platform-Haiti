@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+import PassengerArrivalNotice from './PassengerArrivalNotice'
 import { supabase } from '../lib/supabase'
 
 import { type PassengerRide } from './PassengerRideProvider'
@@ -63,6 +65,7 @@ export default function PassengerRideStatusFlow({ ride, ht, onDismiss }: { ride:
 
   return (
     <div className={`movi-passenger-flow-card ${isTerminal ? 'terminal' : ''} ${driverArrived ? 'arrived' : ''}`} aria-live="polite">
+      <PassengerArrivalNotice rideId={ride.id} status={status} ht={ht} />
       <style>{`
         .movi-passenger-ride-active .searching-card{display:none!important}
         .movi-passenger-flow-card{margin:12px 0 4px;padding:14px;border-radius:20px;background:#f7fbf9;border:1px solid #dbeae4;box-shadow:0 10px 28px rgba(15,112,90,.08);font-family:Inter,system-ui,sans-serif}
@@ -72,6 +75,7 @@ export default function PassengerRideStatusFlow({ ride, ht, onDismiss }: { ride:
         .movi-passenger-flow-icon{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:#e6f5ef;font-size:21px;flex:0 0 auto}.movi-passenger-flow-card.arrived .movi-passenger-flow-icon{background:#0f8065;color:#fff}
         .movi-passenger-flow-copy{min-width:0;flex:1}.movi-passenger-flow-copy strong{display:block;color:#10243a;font-size:15px;line-height:1.25;font-weight:900}.movi-passenger-flow-card.arrived .movi-passenger-flow-copy strong{font-size:17px;color:#0f6d58}.movi-passenger-flow-copy small{display:block;color:#6d7e77;font-size:11px;line-height:1.45;margin-top:4px}.movi-passenger-flow-card.arrived .movi-passenger-flow-copy small{color:#4f6f64;font-size:12px}
         .movi-passenger-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:13px 0 10px}.movi-passenger-step{height:5px;border-radius:999px;background:#dfe8e4}.movi-passenger-step.done{background:#0f8065}.movi-passenger-step.cancelled{background:#ef6a5b}
+        .movi-passenger-step-labels{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:12px}.movi-passenger-step-labels span{text-align:center;font-size:9px;line-height:1.25;color:#75837d;font-weight:750}.movi-passenger-step-labels .current{color:#0f705a;font-weight:950}.movi-passenger-fare{display:flex;justify-content:space-between;gap:10px;margin-top:10px;padding:11px;border-radius:14px;background:#eaf7f2;color:#0f6d58;font-size:12px;font-weight:850}.movi-passenger-fare strong{color:#10243a}
         .movi-passenger-route{padding:10px 11px;border-radius:14px;background:#fff;border:1px solid #e4ece8;display:grid;gap:5px}.movi-passenger-route span{font-size:10px;color:#64756e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.movi-passenger-route b{color:#0f8065;margin-right:5px}
         .movi-passenger-rating{margin-top:12px;padding:13px;border-radius:16px;background:#f7fbf9;border:1px solid #dbeae4;text-align:center}.movi-passenger-rating strong{display:block;color:#10243a;font-size:14px;font-weight:900}.movi-passenger-rating small{display:block;margin-top:3px;color:#6d7e77;font-size:10px}.movi-passenger-stars{display:flex;justify-content:center;gap:7px;margin:10px 0}.movi-passenger-star{border:0;background:transparent;padding:2px;font-size:31px;line-height:1;color:#cbd6d1}.movi-passenger-star.selected{color:#f5b301;transform:scale(1.05)}.movi-passenger-rating-submit{width:100%;border:0;border-radius:13px;background:#0f8065;color:#fff;padding:11px 12px;font-size:12px;font-weight:900}.movi-passenger-rating-submit:disabled{opacity:.45}.movi-passenger-rating-error{display:block;margin-top:7px;color:#b84a43;font-size:10px;font-weight:700}.movi-passenger-rating-thanks{padding:12px;border-radius:14px;background:#eaf7f2;color:#0f6d58;font-size:12px;font-weight:900;text-align:center}
         .movi-passenger-terminal-button{width:100%;margin-top:11px;border:0;border-radius:14px;background:#0f8065;color:#fff;padding:12px 14px;font-size:13px;font-weight:900}
@@ -83,10 +87,14 @@ export default function PassengerRideStatusFlow({ ride, ht, onDismiss }: { ride:
       <div className="movi-passenger-steps" aria-hidden="true">
         {[1,2,3,4].map(step => <span key={step} className={`movi-passenger-step ${status === 'cancelled' ? 'cancelled' : step <= stage ? 'done' : ''}`} />)}
       </div>
+      <div className="movi-passenger-step-labels" aria-label={ht ? 'Etap trajè a' : 'Étapes du trajet'}>
+        {(ht ? ['Aksepte', 'Rive', 'Sou wout', 'Fini'] : ['Accepté', 'Arrivé', 'En route', 'Terminé']).map((label, index) => <span key={label} className={stage === index + 1 && !isTerminal ? 'current' : ''}>{label}</span>)}
+      </div>
       <div className="movi-passenger-route">
         <span><b>●</b>{ride.pickup_address}</span>
         <span><b>◆</b>{ride.destination_address}</span>
       </div>
+      {status === 'completed' && <div className="movi-passenger-fare"><span>{ht ? 'Pri final trajè a' : 'Prix final du trajet'}</span><strong>{ride.final_fare_htg == null ? '—' : `${Number(ride.final_fare_htg).toLocaleString('fr-HT')} HTG`}</strong></div>}
 
       {status === 'completed' && <p><strong>{Number(ride.final_fare_htg ?? ride.estimated_fare_htg ?? 0).toLocaleString('fr-FR')} HTG</strong></p>}
       {status === 'completed' && !ratingDone && <div className="movi-passenger-rating">

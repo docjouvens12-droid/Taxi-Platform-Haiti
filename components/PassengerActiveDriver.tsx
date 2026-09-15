@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 
@@ -30,12 +30,11 @@ type ActiveRideBundle = {
 
 export default function PassengerActiveDriver() {
   const pathname = usePathname()
-  const isPassengerDashboard = pathname === '/' || pathname === '/passenger/dashboard'
+  const isPassengerDashboard = pathname === '/' || pathname === '/movi' || pathname === '/passenger/dashboard'
   const [bundle, setBundle] = useState<ActiveRideBundle | null>(null)
   const [lang, setLang] = useState<'fr' | 'ht'>('fr')
   const [liveDistanceKm, setLiveDistanceKm] = useState<number | null>(null)
   const [liveEtaMin, setLiveEtaMin] = useState<number | null>(null)
-  const [routeGeometry, setRouteGeometry] = useState<string | null>(null)
   const [shareNote, setShareNote] = useState('')
 
   useEffect(() => {
@@ -50,7 +49,6 @@ export default function PassengerActiveDriver() {
         if (active) {
           setLiveDistanceKm(null)
           setLiveEtaMin(null)
-          setRouteGeometry(null)
         }
         return
       }
@@ -70,17 +68,14 @@ export default function PassengerActiveDriver() {
         if (!route) {
           setLiveDistanceKm(null)
           setLiveEtaMin(null)
-          setRouteGeometry(null)
           return
         }
         setLiveDistanceKm(route.distance / 1000)
         setLiveEtaMin(Math.max(1, Math.round(route.duration / 60)))
-        setRouteGeometry(route.geometry ?? null)
       } catch {
         if (active) {
           setLiveDistanceKm(null)
           setLiveEtaMin(null)
-          setRouteGeometry(null)
         }
       }
     }
@@ -178,21 +173,6 @@ export default function PassengerActiveDriver() {
     }
   }, [isPassengerDashboard])
 
-  const miniMapUrl = useMemo(() => {
-    if (!bundle || bundle.ride_status === 'driver_arriving' || !routeGeometry) return null
-    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-    if (!token || bundle.driver_latitude == null || bundle.driver_longitude == null) return null
-    const goingToPassenger = bundle.ride_status === 'accepted'
-    const targetLat = goingToPassenger ? bundle.pickup_latitude : bundle.destination_latitude
-    const targetLng = goingToPassenger ? bundle.pickup_longitude : bundle.destination_longitude
-    if (targetLat == null || targetLng == null) return null
-
-    const path = `path-5+1b70eb-0.95(${encodeURIComponent(routeGeometry)})`
-    const driverPin = `pin-s-car+1b70eb(${bundle.driver_longitude},${bundle.driver_latitude})`
-    const targetPin = `pin-s-marker+102033(${targetLng},${targetLat})`
-    return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${path},${driverPin},${targetPin}/auto/600x260@2x?padding=34&access_token=${encodeURIComponent(token)}`
-  }, [bundle, routeGeometry])
-
   if (!isPassengerDashboard || !bundle) return null
 
   const name = bundle.driver_name?.trim() || (lang === 'ht' ? 'Chofè ou' : 'Votre chauffeur')
@@ -223,7 +203,7 @@ export default function PassengerActiveDriver() {
     try {
       if (navigator.share) {
         await navigator.share({ title: 'MOVI', text })
-        setShareNote(lang === 'ht' ? 'Trajè a pare pou pataje.' : 'Trajet prêt à être partagé.')
+        setShareNote(lang === 'ht' ? 'Detay trajè a pare pou pataje.' : 'Détails du trajet prêts à être partagés.')
       } else if (navigator.clipboard) {
         await navigator.clipboard.writeText(text)
         setShareNote(lang === 'ht' ? 'Detay trajè a kopye.' : 'Détails du trajet copiés.')
@@ -259,7 +239,7 @@ export default function PassengerActiveDriver() {
     </div>
 
     <div className="safetyActions">
-      <button type="button" className="shareRide" onClick={shareRide}>↗ {lang === 'ht' ? 'Pataje trajè' : 'Partager le trajet'}</button>
+      <button type="button" className="shareRide" onClick={shareRide}>↗ {lang === 'ht' ? 'Pataje detay' : 'Partager les détails'}</button>
       <a className="safetyRide" href={safetyHref}>🛡 {lang === 'ht' ? 'Sekirite' : 'Sécurité'}</a>
     </div>
     {shareNote && <div className="shareNote" role="status">{shareNote}</div>}
@@ -268,8 +248,6 @@ export default function PassengerActiveDriver() {
       <span>✓</span>
       <div><strong>{lang === 'ht' ? 'Chofè ou rive' : 'Votre chauffeur est arrivé'}</strong><small>{lang === 'ht' ? 'Li ap tann ou nan pwen pickup la.' : 'Il vous attend au point de prise en charge.'}</small></div>
     </div>}
-
-    {miniMapUrl && <div className="miniMap"><img src={miniMapUrl} alt={lang === 'ht' ? 'Trajektwa chofè a an dirèk' : 'Trajet en direct du chauffeur'} /></div>}
 
     <style jsx>{`
       .driverCard{position:fixed;left:50%;bottom:max(82px,calc(env(safe-area-inset-bottom) + 66px));transform:translateX(-50%);z-index:12050;width:min(calc(100vw - 24px),520px);background:#fff;border:1px solid #dce6f3;border-radius:22px;padding:12px;box-shadow:0 18px 48px rgba(16,32,51,.22);font-family:Inter,system-ui,sans-serif;color:#102033;box-sizing:border-box;overflow:hidden}

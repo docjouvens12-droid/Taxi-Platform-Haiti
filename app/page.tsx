@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import DestinationPickerMap from '../components/DestinationPickerMap'
 
 import { usePassengerRide } from '../components/PassengerRideProvider'
 import PassengerRideStatusFlow from '../components/PassengerRideStatusFlow'
@@ -15,8 +16,10 @@ type Lang = 'fr' | 'ht'
 type Panel = 'home' | 'rides' | 'payment' | 'profile' | 'driver' | 'help'
 type RideOption = { id: 'moto' | 'standard' | 'comfort'; name: string; detailFr: string; detailHt: string; eta: string }
 type Point = { lat: number; lng: number }
+const isHaitiPoint = (point: Point) => point.lat >= 17.8 && point.lat <= 20.1 && point.lng >= -74.7 && point.lng <= -71.5
+const haitiTestPickup: Point = { lat: 18.5392, lng: -72.3364 }
 type Quote = { distance_km: number; duration_min: number; fare_htg: number }
-type SearchResult = { id: string; label: string; center: [number, number] }
+type SearchResult = { id: string; label: string; center: [number, number]; featureType?: string }
 type RouteGeometry = { type: 'LineString'; coordinates: number[][] }
 type RideHistory = { id: string; status: string; pickup_address: string; destination_address: string; final_fare_htg: number | null; estimated_fare_htg: number | null; requested_at: string }
 
@@ -34,12 +37,12 @@ const localPricing = {
 
 const copy = {
   fr: {
-    tagline: 'Déplacez-vous facilement, en toute sécurité', welcome: 'BON RETOUR', createPassenger: 'CRÉER UN COMPTE PASSAGER', signInTitle: 'Connectez-vous pour commander un taxi', signUpTitle: 'Inscrivez-vous comme passager', fullName: 'Nom complet', email: 'E-mail', password: 'Mot de passe', wait: 'Veuillez patienter…', signIn: 'Se connecter', createAccount: 'Créer mon compte', noAccount: 'Pas encore de compte ? Créez-en un', haveAccount: 'Vous avez déjà un compte ? Connectez-vous', accountCreated: 'Compte créé. Vérifiez votre e-mail pour confirmer votre adresse, puis connectez-vous.', hello: 'Bonjour', where: 'Où allez-vous ?', drivers: 'Chauffeurs disponibles', pickup: 'Lieu de prise en charge', current: 'Ma position actuelle', testPosition: 'Port-au-Prince (position de test)', destination: 'Destination', destinationPlaceholder: 'Saisissez une adresse ou un lieu en Haïti', searchingAddress: 'Recherche des adresses…', chooseService: 'Choisissez le service', vehicles: 'Véhicules disponibles', chooseDestination: 'Choisissez une destination', payment: 'Paiement', cash: 'Espèces', change: 'Changer ›', searchingDriver: 'Nous cherchons un chauffeur pour vous…', trip: 'trajet', calculating: 'Calcul du prix…', sending: 'Envoi de la demande…', request: 'Commander', mapNote: 'Carte, recherche et itinéraire : Mapbox. Prix et création du trajet : Supabase.',
-    menu: 'Menu', home: 'Accueil', myRides: 'Mes trajets', profile: 'Profil', becomeDriver: 'Devenir chauffeur', language: 'Langue', help: 'Aide', logout: 'Se déconnecter', recentRides: 'Vos trajets récents', noRides: 'Vous n’avez encore aucun trajet.', loadingRides: 'Chargement de vos trajets…', backHome: 'Retour à l’accueil', paymentTitle: 'Moyens de paiement', currentPayment: 'Moyen de paiement actuel', paymentNote: 'Les paiements par carte et mobile money seront ajoutés dans une prochaine étape.', profileTitle: 'Mon profil', passengerAccount: 'Compte passager', driverTitle: 'Conduisez avec MOVI', driverText: 'L’inscription chauffeur permettra d’envoyer vos documents, votre permis et les informations de votre véhicule pour validation.', driverCta: 'Commencer l’inscription chauffeur', helpTitle: 'Centre d’aide', helpText: 'Besoin d’aide avec un trajet, un paiement ou votre compte ? Le centre d’assistance sera connecté ici.', helpCta: 'Contacter l’assistance', french: 'Français', creole: 'Kreyòl'
+    tagline: 'Déplacez-vous facilement, en toute sécurité', welcome: 'BON RETOUR', createPassenger: 'CRÉER UN COMPTE PASSAGER', signInTitle: 'Connectez-vous pour commander un taxi', signUpTitle: 'Inscrivez-vous comme passager', fullName: 'Nom complet', email: 'E-mail', password: 'Mot de passe', wait: 'Veuillez patienter…', signIn: 'Se connecter', createAccount: 'Créer mon compte', noAccount: 'Pas encore de compte ? Créez-en un', haveAccount: 'Vous avez déjà un compte ? Connectez-vous', accountCreated: 'Compte créé. Vérifiez votre e-mail pour confirmer votre adresse, puis connectez-vous.', hello: 'Bonjour', where: 'Où allez-vous ?', drivers: 'Chauffeurs disponibles', pickup: 'Lieu de prise en charge', current: 'Ma position actuelle', testPosition: 'Port-au-Prince (position de test)', destination: 'Destination', destinationPlaceholder: 'Saisissez une adresse ou un lieu en Haïti', searchingAddress: 'Recherche des adresses…', chooseService: 'Choisissez le service', vehicles: 'Véhicules disponibles', chooseDestination: 'Choisissez une destination', payment: 'Paiement', change: 'Changer ›', searchingDriver: 'Nous cherchons un chauffeur pour vous…', trip: 'trajet', calculating: 'Calcul du prix…', sending: 'Envoi de la demande…', request: 'Commander', mapNote: 'Carte, recherche et itinéraire : Mapbox. Prix et création du trajet : Supabase.',
+    menu: 'Menu', home: 'Accueil', myRides: 'Mes trajets', profile: 'Profil', becomeDriver: 'Devenir chauffeur', language: 'Langue', help: 'Aide', logout: 'Se déconnecter', recentRides: 'Vos trajets récents', noRides: 'Vous n’avez encore aucun trajet.', loadingRides: 'Chargement de vos trajets…', backHome: 'Retour à l’accueil', paymentTitle: 'Moyens de paiement', currentPayment: 'Moyen de paiement actuel', paymentNote: 'Choisissez MonCash ou NatCash.', profileTitle: 'Mon profil', passengerAccount: 'Compte passager', driverTitle: 'Conduisez avec MOVI', driverText: 'L’inscription chauffeur permettra d’envoyer vos documents, votre permis et les informations de votre véhicule pour validation.', driverCta: 'Commencer l’inscription chauffeur', helpTitle: 'Centre d’aide', helpText: 'Besoin d’aide avec un trajet, un paiement ou votre compte ? Le centre d’assistance sera connecté ici.', helpCta: 'Contacter l’assistance', french: 'Français', creole: 'Kreyòl'
   },
   ht: {
-    tagline: 'Deplase fasil, deplase an sekirite', welcome: 'BYENVINI ANKÒ', createPassenger: 'KREYE KONT PASAJE', signInTitle: 'Konekte pou mande taksi', signUpTitle: 'Enskri kòm pasaje', fullName: 'Non konplè', email: 'Imel', password: 'Modpas', wait: 'Tanpri tann…', signIn: 'Konekte', createAccount: 'Kreye kont mwen', noAccount: 'Ou poko gen kont? Kreye youn', haveAccount: 'Ou deja gen kont? Konekte', accountCreated: 'Kont lan kreye. Tcheke imel ou pou konfime adrès la, epi konekte.', hello: 'Bonjou', where: 'Ki kote ou prale?', drivers: 'Chofè disponib', pickup: 'Kote pou pran ou', current: 'Pozisyon aktyèl mwen', testPosition: 'Port-au-Prince (pozisyon tès)', destination: 'Destinasyon', destinationPlaceholder: 'Ekri yon adrès oswa yon kote an Ayiti', searchingAddress: 'N ap chèche adrès yo…', chooseService: 'Chwazi sèvis la', vehicles: 'Machin ki disponib', chooseDestination: 'Chwazi destinasyon', payment: 'Peman', cash: 'Lajan kach', change: 'Chanje ›', searchingDriver: 'N ap chèche yon chofè pou ou…', trip: 'trajè', calculating: 'N ap kalkile pri…', sending: 'N ap voye demann lan…', request: 'Mande', mapNote: 'Kat, rechèch ak routage: Mapbox. Pri ak kreyasyon trajè: Supabase.',
-    menu: 'Meni', home: 'Akèy', myRides: 'Trajè mwen yo', profile: 'Pwofil', becomeDriver: 'Vin chofè', language: 'Lang', help: 'Èd', logout: 'Dekonekte', recentRides: 'Dènye trajè ou yo', noRides: 'Ou poko gen okenn trajè.', loadingRides: 'N ap chaje trajè ou yo…', backHome: 'Retounen sou akèy', paymentTitle: 'Metòd peman', currentPayment: 'Metòd peman aktyèl', paymentNote: 'Peman ak kat ak mobile money ap ajoute nan yon pwochen etap.', profileTitle: 'Pwofil mwen', passengerAccount: 'Kont pasaje', driverTitle: 'Kondwi ak MOVI', driverText: 'Enskripsyon chofè a ap pèmèt ou voye dokiman, lisans ak enfòmasyon machin ou pou verifikasyon.', driverCta: 'Kòmanse enskripsyon chofè', helpTitle: 'Sant èd', helpText: 'Ou bezwen èd ak yon trajè, peman oswa kont ou? Sant asistans lan ap konekte isit la.', helpCta: 'Kontakte asistans', french: 'Français', creole: 'Kreyòl'
+    tagline: 'Deplase fasil, deplase an sekirite', welcome: 'BYENVINI ANKÒ', createPassenger: 'KREYE KONT PASAJE', signInTitle: 'Konekte pou mande taksi', signUpTitle: 'Enskri kòm pasaje', fullName: 'Non konplè', email: 'Imel', password: 'Modpas', wait: 'Tanpri tann…', signIn: 'Konekte', createAccount: 'Kreye kont mwen', noAccount: 'Ou poko gen kont? Kreye youn', haveAccount: 'Ou deja gen kont? Konekte', accountCreated: 'Kont lan kreye. Tcheke imel ou pou konfime adrès la, epi konekte.', hello: 'Bonjou', where: 'Ki kote ou prale?', drivers: 'Chofè disponib', pickup: 'Kote pou pran ou', current: 'Pozisyon aktyèl mwen', testPosition: 'Port-au-Prince (pozisyon tès)', destination: 'Destinasyon', destinationPlaceholder: 'Ekri yon adrès oswa yon kote an Ayiti', searchingAddress: 'N ap chèche adrès yo…', chooseService: 'Chwazi sèvis la', vehicles: 'Machin ki disponib', chooseDestination: 'Chwazi destinasyon', payment: 'Peman', change: 'Chanje ›', searchingDriver: 'N ap chèche yon chofè pou ou…', trip: 'trajè', calculating: 'N ap kalkile pri…', sending: 'N ap voye demann lan…', request: 'Mande', mapNote: 'Kat, rechèch ak routage: Mapbox. Pri ak kreyasyon trajè: Supabase.',
+    menu: 'Meni', home: 'Akèy', myRides: 'Trajè mwen yo', profile: 'Pwofil', becomeDriver: 'Vin chofè', language: 'Lang', help: 'Èd', logout: 'Dekonekte', recentRides: 'Dènye trajè ou yo', noRides: 'Ou poko gen okenn trajè.', loadingRides: 'N ap chaje trajè ou yo…', backHome: 'Retounen sou akèy', paymentTitle: 'Metòd peman', currentPayment: 'Metòd peman aktyèl', paymentNote: 'Chwazi MonCash oswa NatCash.', profileTitle: 'Pwofil mwen', passengerAccount: 'Kont pasaje', driverTitle: 'Kondwi ak MOVI', driverText: 'Enskripsyon chofè a ap pèmèt ou voye dokiman, lisans ak enfòmasyon machin ou pou verifikasyon.', driverCta: 'Kòmanse enskripsyon chofè', helpTitle: 'Sant èd', helpText: 'Ou bezwen èd ak yon trajè, peman oswa kont ou? Sant asistans lan ap konekte isit la.', helpCta: 'Kontakte asistans', french: 'Français', creole: 'Kreyòl'
   }
 }
 
@@ -67,16 +70,24 @@ export default function HomePage() {
   const [password, setPassword] = useState('')
   const [pickup, setPickup] = useState(copy.fr.current)
   const [pickupCoords, setPickupCoords] = useState<Point | null>(null)
-  const { ride: currentRide, loading: rideLoading, error: rideSyncError, refresh: refreshRide, dismiss: dismissRide } = usePassengerRide()
-  const requestBusy = useRef(false)
-  const [searchMessage, setSearchMessage] = useState('')
+  const [pickupStatus, setPickupStatus] = useState<'loading' | 'ready' | 'outside' | 'unavailable'>('loading')
+  const [paymentMethod, setPaymentMethod] = useState<'moncash' | 'natcash'>('moncash')
+  useEffect(() => {
+    const sync = () => setPaymentMethod(localStorage.getItem('taxi-payment-method') === 'natcash' ? 'natcash' : 'moncash')
+    sync()
+    window.addEventListener('taxi-payment-method-change', sync)
+    return () => window.removeEventListener('taxi-payment-method-change', sync)
+  }, [])
   const [destination, setDestination] = useState('')
-  const [destinationDisplay, setDestinationDisplay] = useState<{ city: string; street: string } | null>(null)
+  const [destinationPickerOpen, setDestinationPickerOpen] = useState(false)
   const [destinationCoords, setDestinationCoords] = useState<Point | null>(null)
   const [resolvedDestinationCoords, setResolvedDestinationCoords] = useState<Point | null>(null)
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searchBusy, setSearchBusy] = useState(false)
+  const [searchCompletedQuery, setSearchCompletedQuery] = useState('')
+  const [selectedStreetPoint, setSelectedStreetPoint] = useState(false)
   const [routeGeometry, setRouteGeometry] = useState<RouteGeometry | null>(null)
+  const [routeApproximate, setRouteApproximate] = useState(false)
   const [routeDistanceKm, setRouteDistanceKm] = useState<number | null>(null)
   const [routeDurationMin, setRouteDurationMin] = useState<number | null>(null)
   const [selectedRide, setSelectedRide] = useState<RideOption['id']>('standard')
@@ -92,7 +103,7 @@ export default function HomePage() {
   const effectiveDestinationCoords = destinationCoords ?? resolvedDestinationCoords
   const ride = useMemo(() => rideOptions.find((o) => o.id === selectedRide) ?? rideOptions[1], [selectedRide])
   const fallbackQuote = useMemo<Quote | null>(() => {
-    if (!pickupCoords || !effectiveDestinationCoords) return null
+    if (!pickupCoords || !effectiveDestinationCoords || !isHaitiPoint(pickupCoords) || !isHaitiPoint(effectiveDestinationCoords)) return null
 
     let distanceKm = routeDistanceKm
     let durationMin = routeDurationMin
@@ -143,13 +154,19 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setPickupCoords({ lat: 18.5392, lng: -72.3364 })
+      setPickupCoords(haitiTestPickup)
       setPickup(copy[lang].testPosition)
+      setPickupStatus('ready')
       return
     }
     navigator.geolocation.getCurrentPosition(
-      (p) => setPickupCoords({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      () => { setPickupCoords({ lat: 18.5392, lng: -72.3364 }); setPickup(copy[lang].testPosition) },
+      (p) => {
+        const point = { lat: p.coords.latitude, lng: p.coords.longitude }
+        setPickupCoords(isHaitiPoint(point) ? point : haitiTestPickup)
+        setPickup(isHaitiPoint(point) ? copy[lang].current : copy[lang].testPosition)
+        setPickupStatus('ready')
+      },
+      () => { setPickupCoords(haitiTestPickup); setPickup(copy[lang].testPosition); setPickupStatus('ready') },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
   }, [lang])
@@ -176,7 +193,7 @@ export default function HomePage() {
     let controller: AbortController | null = null
     const timer = window.setTimeout(async () => {
       controller = new AbortController()
-      const abortTimer = window.setTimeout(() => controller?.abort(), 6500)
+      const abortTimer = window.setTimeout(() => controller?.abort(), 12500)
       setSearchBusy(true)
       setSearchMessage('')
       try {
@@ -190,12 +207,10 @@ export default function HomePage() {
         const json = await response.json()
         if (cancelled) return
         setSearchResults((json.results ?? []) as SearchResult[])
-        if (!json.results?.length) setSearchMessage(lang === 'ht' ? 'Adrès la pa jwenn. Chwazi pwen egzak la sou kat la.' : 'Adresse introuvable. Choisissez le point exact sur la carte.')
+        setSearchCompletedQuery(query)
       } catch {
-        if (!cancelled) {
-          setSearchResults([])
-          setSearchMessage(lang === 'ht' ? 'Rechèch la pa disponib. Eseye ankò oswa chwazi sou kat la.' : 'Recherche indisponible. Réessayez ou choisissez sur la carte.')
-        }
+        setSearchResults([])
+        setSearchCompletedQuery(query)
       } finally {
         window.clearTimeout(abortTimer)
         if (!cancelled) setSearchBusy(false)
@@ -210,22 +225,26 @@ export default function HomePage() {
   }, [destination, destinationCoords, pickupCoords, lang])
 
   useEffect(() => {
-    if (!token || !pickupCoords || !effectiveDestinationCoords) { setRouteGeometry(null); setRouteDistanceKm(null); setRouteDurationMin(null); return }
+    if (!pickupCoords || !effectiveDestinationCoords || !isHaitiPoint(pickupCoords) || !isHaitiPoint(effectiveDestinationCoords)) { setRouteGeometry(null); setRouteApproximate(false); setRouteDistanceKm(null); setRouteDurationMin(null); return }
     let cancelled = false
+    setRouteGeometry(null); setRouteApproximate(false); setRouteDistanceKm(null); setRouteDurationMin(null)
     ;(async () => {
       try {
+        if (!token) throw new Error('MAPBOX_TOKEN_MISSING')
         const coords = `${pickupCoords.lng},${pickupCoords.lat};${effectiveDestinationCoords.lng},${effectiveDestinationCoords.lat}`
-        const response = await fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?overview=full&geometries=geojson&steps=false&access_token=${encodeURIComponent(token)}`)
+        const response = await fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?overview=full&geometries=geojson&steps=false&access_token=${encodeURIComponent(token)}`, { cache: 'no-store' })
+        if (!response.ok) throw new Error('DIRECTIONS_UNAVAILABLE')
         const json = await response.json(); const route = json.routes?.[0]
-        if (!route || cancelled) return
-        setRouteGeometry(route.geometry); setRouteDistanceKm(route.distance / 1000); setRouteDurationMin(Math.max(1, Math.round(route.duration / 60)))
-      } catch { if (!cancelled) { setRouteGeometry(null); setRouteDistanceKm(null); setRouteDurationMin(null) } }
+        if (!route || !route.geometry) throw new Error('ROUTE_UNAVAILABLE')
+        if (cancelled) return
+        setRouteGeometry(route.geometry); setRouteApproximate(false); setRouteDistanceKm(route.distance / 1000); setRouteDurationMin(Math.max(1, Math.round(route.duration / 60)))
+      } catch { if (!cancelled) { setRouteGeometry(null); setRouteApproximate(false); setRouteDistanceKm(null); setRouteDurationMin(null) } }
     })()
     return () => { cancelled = true }
   }, [pickupCoords, effectiveDestinationCoords, token])
 
   useEffect(() => {
-    if (!user || !pickupCoords || !effectiveDestinationCoords) { setQuote(null); return }
+    if (!user || !pickupCoords || !effectiveDestinationCoords || !isHaitiPoint(pickupCoords) || !isHaitiPoint(effectiveDestinationCoords)) { setQuote(null); return }
     let cancelled = false
     let timeoutId: number | undefined
 
@@ -305,11 +324,15 @@ export default function HomePage() {
 
   function chooseSearchResult(result: SearchResult) {
     const coords = { lng: result.center[0], lat: result.center[1] }
-    // Preserve the address the passenger entered; coordinates come from their selected result.
-    setSearchMessage('')
+    if (!isHaitiPoint(coords)) return
+    const streetWithNumber = result.featureType === 'street' && /^\s*\d+\b/.test(destination)
+    setRouteGeometry(null); setRouteApproximate(false)
+    setDestination(streetWithNumber ? destination.trim() : result.label)
     setDestinationCoords(coords)
     setResolvedDestinationCoords(coords)
+    setSelectedStreetPoint(streetWithNumber)
     setSearchResults([])
+    setSearchCompletedQuery('')
     setRideError('')
   }
 
@@ -332,15 +355,14 @@ export default function HomePage() {
   }
 
   async function requestRide() {
-    if (currentRide || rideLoading || rideSyncError || requestBusy.current || requestState === 'searching') return
-    requestBusy.current = true
-    try {
-    if (!user || !effectiveDestinationCoords) return
+    if (!user || !effectiveDestinationCoords || !isHaitiPoint(effectiveDestinationCoords)) return
     setRequestState('requesting'); setRideError('')
     let requestPickup: Point
     try {
       requestPickup = await freshPassengerPosition()
+      if (!isHaitiPoint(requestPickup)) requestPickup = haitiTestPickup
       setPickupCoords(requestPickup)
+      setPickupStatus('ready')
       setPickup(copy[lang].current)
     } catch {
       if (!pickupCoords) {
@@ -415,6 +437,7 @@ export default function HomePage() {
   const panelContent = panel !== 'home' && <section className="account-panel">
     <div className="panel-header"><button onClick={() => setPanel('home')}>‹</button><strong>{panel === 'rides' ? t.myRides : panel === 'payment' ? t.paymentTitle : panel === 'profile' ? t.profileTitle : panel === 'driver' ? t.becomeDriver : t.helpTitle}</strong><span /></div>
     {panel === 'rides' && <div className="panel-body"><h2>{t.recentRides}</h2>{ridesBusy ? <p className="muted">{t.loadingRides}</p> : rides.length === 0 ? <div className="empty-state">🚕<strong>{t.noRides}</strong></div> : <div className="history-list">{rides.map((r) => <div className="history-card" key={r.id}><div><strong>{r.pickup_address}</strong><span>→</span><strong>{r.destination_address}</strong></div><small>{new Date(r.requested_at).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'fr-HT')} · {r.status}</small><b>{Number(r.final_fare_htg ?? r.estimated_fare_htg ?? 0).toLocaleString('fr-FR')} HTG</b></div>)}</div>}</div>}
+    {panel === 'payment' && <div className="panel-body"><h2>{t.paymentTitle}</h2><div className="feature-card"><span className="feature-icon">📱</span><div><small>{t.currentPayment}</small><strong>{paymentMethod === 'natcash' ? 'NatCash' : 'MonCash'}</strong></div><span>✓</span></div><p className="muted">{t.paymentNote}</p></div>}
     {panel === 'profile' && <div className="panel-body"><h2>{t.profileTitle}</h2><div className="profile-avatar">{(user.user_metadata?.full_name?.[0] ?? user.email?.[0] ?? 'U').toUpperCase()}</div><div className="profile-info"><small>{t.passengerAccount}</small><strong>{user.user_metadata?.full_name || '—'}</strong><span>{user.email}</span></div></div>}
     {panel === 'driver' && <div className="panel-body promo-panel"><div className="promo-icon">🚘</div><h2>{t.driverTitle}</h2><p>{t.driverText}</p><button className="primary-panel-button">{t.driverCta}</button></div>}
     {panel === 'help' && <div className="panel-body promo-panel"><div className="promo-icon">💬</div><h2>{t.helpTitle}</h2><p>{t.helpText}</p><button className="primary-panel-button">{t.helpCta}</button></div>}
@@ -423,7 +446,7 @@ export default function HomePage() {
   return <main className="shell"><section className="phone-frame">
     {panelContent}
     <div className={`app-underlay ${panel !== 'home' ? 'panel-hidden' : ''}`}>
-      <div className="map-panel real-map-panel"><TaxiMap pickup={currentRide && currentRide.pickup_latitude != null && currentRide.pickup_longitude != null ? { lat: currentRide.pickup_latitude, lng: currentRide.pickup_longitude } : pickupCoords} destination={currentRide ? (['completed', 'cancelled'].includes(currentRide.status) || currentRide.destination_latitude == null || currentRide.destination_longitude == null ? null : { lat: currentRide.destination_latitude, lng: currentRide.destination_longitude }) : effectiveDestinationCoords} routeGeometry={currentRide ? null : routeGeometry} />
+      <div className="map-panel real-map-panel"><TaxiMap pickup={pickupCoords} destination={effectiveDestinationCoords} routeGeometry={routeGeometry} routeApproximate={routeApproximate} />
         <div className="topbar"><button className="round-button" onClick={() => setMenuOpen(true)}>☰</button><div className="brand-chip"><span className="brand-mark">M</span><div><strong>MOVI</strong><small>{t.tagline}</small></div></div><button className="round-button" onClick={() => openPanel('profile')}>👤</button></div>
       </div>
       <section className="booking-sheet"><div className="grabber" />
@@ -433,16 +456,38 @@ export default function HomePage() {
         {currentRide && currentRide.status !== 'requested' && <PassengerRideStatusFlow key={currentRide.id} ride={currentRide} ht={lang === 'ht'} onDismiss={newRide} />}
         {!currentRide && !rideLoading && <>
         <div className="greeting-row"><div><p className="eyebrow">{t.hello} {user.user_metadata?.full_name?.split(' ')[0] ?? ''} 👋</p><h1>{t.where}</h1></div><span className="online-pill">{t.drivers}</span></div>
-        <div className="route-card"><div className="route-line"><span className="pickup-dot" /><div className="input-wrap"><label>{t.pickup}</label><input value={pickup} readOnly /></div></div><div className="connector" /><div className="route-line"><span className="destination-dot" /><div className="input-wrap"><label>{t.destination}</label><input value={destination} autoComplete="off" autoCorrect="off" spellCheck={false} enterKeyHint="search" onChange={(e) => { setDestination(e.target.value); setDestinationDisplay(null); setDestinationCoords(null); setResolvedDestinationCoords(null); setQuote(null); setSearchResults([]); setSearchMessage(''); setRideError('') }} placeholder={t.destinationPlaceholder} />{destinationDisplay && <div className="destination-display"><strong>{destinationDisplay.city}</strong><span>{destinationDisplay.street}</span></div>}</div></div></div>
-        {searchMessage && <p role="status">{searchMessage}</p>}
-        {(searchBusy || searchResults.length > 0) && <div className="search-results">{searchBusy && <div className="search-status">{t.searchingAddress}</div>}{searchResults.map((r) => <button key={r.id} onClick={() => chooseSearchResult(r)}><span>📍</span><strong>{r.label}</strong></button>)}</div>}
-        <div className="section-heading"><div><p className="eyebrow">{t.chooseService}</p><h2>{t.vehicles}</h2></div><span>{routeDistanceKm && routeDurationMin ? `${routeDistanceKm.toFixed(1)} km · ${routeDurationMin} min` : effectiveQuote ? `${effectiveQuote.distance_km.toFixed(1)} km · ${effectiveQuote.duration_min} min` : t.chooseDestination}</span></div>
+        <div className="route-card">
+          <div className="route-line"><span className="pickup-dot" /><div className="input-wrap"><label>{t.pickup}</label><input value={pickupStatus === 'outside' ? (lang === 'ht' ? 'GPS deyò Ayiti' : 'GPS hors d’Haïti') : pickup} readOnly /></div></div>
+          <div className="connector" />
+          <div className="route-line"><span className="destination-dot" /><div className="input-wrap">
+            <label>{t.destination}</label>
+            <input
+              value={destinationCoords ? destination.split('\n')[0] : destination}
+              autoComplete="off" autoCorrect="off" spellCheck={false} enterKeyHint="search"
+              onChange={(e) => { setDestination(e.target.value); setDestinationCoords(null); setResolvedDestinationCoords(null); setSelectedStreetPoint(false); setSearchCompletedQuery(''); setRouteGeometry(null); setRouteApproximate(false); setRouteDistanceKm(null); setRouteDurationMin(null); setQuote(null); setRideError('') }}
+              placeholder={t.destinationPlaceholder}
+            />
+            {destinationCoords && destination.includes('\n') && (
+              <span style={{ display: 'block', marginTop: 4, fontSize: 14, fontWeight: 700, whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>
+                {destination.split('\n').slice(1).join('\n')}
+              </span>
+            )}
+          </div></div>
+        </div>
+        {(searchBusy || searchResults.length > 0) && <div className="search-results">{searchBusy && <div className="search-status">{t.searchingAddress}</div>}{searchResults.map((r) => <button key={r.id} onClick={() => chooseSearchResult(r)}><span>📍</span><span><strong>{r.label}</strong><small>{r.featureType === 'address' ? (lang === 'ht' ? 'Adrès sou kat la' : 'Adresse sur la carte') : r.featureType === 'street' ? (lang === 'ht' ? 'Pwen nan ri a · nimewo kay pa verifye' : 'Point dans la rue · numéro non vérifié') : (lang === 'ht' ? 'Kote sou kat la' : 'Lieu sur la carte')}</small></span></button>)}</div>}
+        {selectedStreetPoint && <div className="movi-address-note">{lang === 'ht' ? 'Ou chwazi ri a. Nimewo kay la rete nan adrès demann nan, men pin nan se yon pwen nan ri a.' : 'Vous avez choisi la rue. Le numéro reste dans la demande, mais le repère indique un point dans cette rue.'}</div>}
+        {!destinationCoords && !searchBusy && searchCompletedQuery === destination.trim() && searchResults.length === 0 && <div className="movi-address-note">{lang === 'ht' ? 'Pa gen rezilta pou adrès sa a. Ou ka chwazi pwen an sou kat la.' : 'Aucun résultat pour cette adresse. Vous pouvez placer le point sur la carte.'}</div>}
+        {pickupStatus === 'ready' && pickup === copy[lang].testPosition && <div className="movi-address-note">{lang === 'ht' ? 'GPS pa disponib; n ap sèvi ak Port-au-Prince kòm pwen depa tès la.' : 'GPS indisponible; Port-au-Prince est utilisé comme point de départ de test.'}</div>}
+        {(selectedStreetPoint || (!destinationCoords && searchCompletedQuery === destination.trim() && searchResults.length === 0)) && <button type="button" className="movi-open-destination-map" onClick={() => setDestinationPickerOpen(true)}>📍 {lang === 'ht' ? 'Ajiste pwen an sou kat la' : 'Ajuster le point sur la carte'}</button>}
+        <div className="section-heading"><div><p className="eyebrow">{t.chooseService}</p><h2>{t.vehicles}</h2></div></div>
         <div className="ride-list">{rideOptions.map((option) => <button key={option.id} className={`ride-option ${selectedRide === option.id ? 'selected' : ''}`} onClick={() => setSelectedRide(option.id)}><span className="ride-icon">{option.id === 'moto' ? '🏍️' : option.id === 'comfort' ? '🚙' : '🚕'}</span><span className="ride-copy"><strong>{option.name}</strong><small>{lang === 'fr' ? option.detailFr : option.detailHt} · {option.eta}</small></span><strong className="ride-price">{selectedRide === option.id && effectiveQuote ? `${effectiveQuote.fare_htg.toLocaleString('fr-FR')} HTG` : '—'}</strong></button>)}</div>
+        <div className="payment-row"><div><span className="payment-icon">📱</span><div><small>{t.payment}</small><strong>{paymentMethod === 'natcash' ? 'NatCash' : 'MonCash'}</strong></div></div><button onClick={() => openPanel('payment')}>{t.change}</button></div>
         {rideError && <div className="ride-error">{rideError}</div>}
         {requestState === 'searching' ? <div className="searching-card"><div className="spinner" /><div><strong>{t.searchingDriver}</strong><small>{ride.name} · {t.trip} #{rideId?.slice(0, 8)}</small></div></div> : <button className="request-button" disabled={!effectiveQuote || rideSyncError || requestState === 'requesting'} onClick={requestRide}><span>{requestState === 'requesting' ? t.sending : effectiveQuote ? `${t.request} ${ride.name}` : t.calculating}</span><strong>{effectiveQuote ? `${effectiveQuote.fare_htg.toLocaleString('fr-FR')} HTG` : '—'}</strong></button>}
         <p className="fine-print">{t.mapNote}</p>
       </>}</section>
     </div>
+    {destinationPickerOpen && <DestinationPickerMap pickup={pickupCoords} initialDestination={effectiveDestinationCoords} initialQuery={destination} lang={lang} onCancel={() => setDestinationPickerOpen(false)} onConfirm={(point, label) => { setDestination(label); setDestinationCoords(point); setResolvedDestinationCoords(point); setSelectedStreetPoint(false); setRouteGeometry(null); setRouteApproximate(false); setQuote(null); setSearchResults([]); setDestinationPickerOpen(false) }} />}
     {menuOpen && <><button className="drawer-backdrop" aria-label="Close menu" onClick={() => setMenuOpen(false)} /><aside className="nav-drawer">
       <div className="drawer-head"><div className="drawer-brand"><span className="brand-mark">M</span><div><strong>MOVI</strong><small>{t.menu}</small></div></div><button onClick={() => setMenuOpen(false)}>×</button></div>
       <div className="drawer-user"><div className="drawer-avatar">{(user.user_metadata?.full_name?.[0] ?? user.email?.[0] ?? 'U').toUpperCase()}</div><div><strong>{user.user_metadata?.full_name || t.passengerAccount}</strong><small>{user.email}</small></div></div>

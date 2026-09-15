@@ -19,11 +19,6 @@ const TEST_POSITION: GeolocationPosition = {
 
 const TEST_MODE_KEY = 'taxi-haiti-test-mode'
 
-function isInHaiti(position: GeolocationPosition) {
-  const { latitude, longitude } = position.coords
-  return latitude >= 17.7 && latitude <= 20.2 && longitude >= -74.7 && longitude <= -71.5
-}
-
 export default function HaitiTestGeolocation() {
   useLayoutEffect(() => {
     if (typeof window === 'undefined' || !navigator.geolocation) return
@@ -52,28 +47,6 @@ export default function HaitiTestGeolocation() {
         const id = window.setInterval(() => success({ ...TEST_POSITION, timestamp: Date.now() }), 5000)
         window.setTimeout(() => success({ ...TEST_POSITION, timestamp: Date.now() }), 0)
         return id
-      }) as typeof geo.watchPosition
-    } else if (!requestedRealMode) {
-      geo.getCurrentPosition = ((success: PositionCallback, error?: PositionErrorCallback | null, options?: PositionOptions) => {
-        originalGetCurrentPosition(
-          (position) => {
-            if (isInHaiti(position)) success(position)
-            else success({ ...TEST_POSITION, timestamp: Date.now() })
-          },
-          () => success({ ...TEST_POSITION, timestamp: Date.now() }),
-          options,
-        )
-      }) as typeof geo.getCurrentPosition
-
-      geo.watchPosition = ((success: PositionCallback, error?: PositionErrorCallback | null, options?: PositionOptions) => {
-        return originalWatchPosition(
-          (position) => {
-            if (isInHaiti(position)) success(position)
-            else success({ ...TEST_POSITION, timestamp: Date.now() })
-          },
-          () => success({ ...TEST_POSITION, timestamp: Date.now() }),
-          options,
-        )
       }) as typeof geo.watchPosition
     }
 
