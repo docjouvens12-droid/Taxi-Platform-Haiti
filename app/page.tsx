@@ -13,6 +13,7 @@ type Panel = 'home' | 'rides' | 'payment' | 'profile' | 'driver' | 'help'
 type RideOption = { id: 'moto' | 'standard' | 'comfort'; name: string; detailFr: string; detailHt: string; eta: string }
 type Point = { lat: number; lng: number }
 const isHaitiPoint = (point: Point) => point.lat >= 17.8 && point.lat <= 20.1 && point.lng >= -74.7 && point.lng <= -71.5
+const haitiTestPickup: Point = { lat: 18.5392, lng: -72.3364 }
 type Quote = { distance_km: number; duration_min: number; fare_htg: number }
 type SearchResult = { id: string; label: string; center: [number, number]; featureType?: string }
 type RouteGeometry = { type: 'LineString'; coordinates: number[][] }
@@ -149,8 +150,9 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setPickupCoords(null)
-      setPickupStatus('unavailable')
+      setPickupCoords(haitiTestPickup)
+      setPickup(copy[lang].testPosition)
+      setPickupStatus('ready')
       return
     }
     navigator.geolocation.getCurrentPosition(
@@ -159,7 +161,7 @@ export default function HomePage() {
         setPickupCoords(isHaitiPoint(point) ? point : null)
         setPickupStatus(isHaitiPoint(point) ? 'ready' : 'outside')
       },
-      () => { setPickupCoords(null); setPickupStatus('unavailable') },
+      () => { setPickupCoords(haitiTestPickup); setPickup(copy[lang].testPosition); setPickupStatus('ready') },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
   }, [lang])
@@ -425,7 +427,7 @@ export default function HomePage() {
       <section className="booking-sheet"><div className="grabber" />
         <div className="greeting-row"><div><p className="eyebrow">{t.hello} {user.user_metadata?.full_name?.split(' ')[0] ?? ''} 👋</p><h1>{t.where}</h1></div><span className="online-pill">{t.drivers}</span></div>
         <div className="route-card">
-          <div className="route-line"><span className="pickup-dot" /><div className="input-wrap"><label>{t.pickup}</label><input value={pickupStatus === 'outside' ? (lang === 'ht' ? 'GPS deyò Ayiti' : 'GPS hors d’Haïti') : pickupStatus === 'unavailable' ? (lang === 'ht' ? 'Pozisyon pa disponib' : 'Position indisponible') : pickup} readOnly /></div></div>
+          <div className="route-line"><span className="pickup-dot" /><div className="input-wrap"><label>{t.pickup}</label><input value={pickupStatus === 'outside' ? (lang === 'ht' ? 'GPS deyò Ayiti' : 'GPS hors d’Haïti') : pickup} readOnly /></div></div>
           <div className="connector" />
           <div className="route-line"><span className="destination-dot" /><div className="input-wrap">
             <label>{t.destination}</label>
@@ -446,7 +448,7 @@ export default function HomePage() {
         {selectedStreetPoint && <div className="movi-address-note">{lang === 'ht' ? 'Ou chwazi ri a. Nimewo kay la rete nan adrès demann nan, men pin nan se yon pwen nan ri a.' : 'Vous avez choisi la rue. Le numéro reste dans la demande, mais le repère indique un point dans cette rue.'}</div>}
         {!destinationCoords && !searchBusy && searchCompletedQuery === destination.trim() && searchResults.length === 0 && <div className="movi-address-note">{lang === 'ht' ? 'Pa gen rezilta pou adrès sa a. Ou ka chwazi pwen an sou kat la.' : 'Aucun résultat pour cette adresse. Vous pouvez placer le point sur la carte.'}</div>}
         {pickupStatus === 'outside' && <div className="ride-error">{lang === 'ht' ? 'GPS ou montre ou deyò Ayiti. Destinasyon an sou kat la, men yon trajè MOVI bezwen yon pwen depa ann Ayiti.' : 'Votre GPS vous situe hors d’Haïti. La destination reste sur la carte, mais un trajet MOVI nécessite un départ en Haïti.'}</div>}
-        {pickupStatus === 'unavailable' && <div className="ride-error">{lang === 'ht' ? 'Nou pa ka jwenn pozisyon ou. Aktive Lokalizasyon pou chwazi yon pwen depa ann Ayiti.' : 'Position indisponible. Activez la localisation pour définir un départ en Haïti.'}</div>}
+        {pickupStatus === 'ready' && pickup === copy[lang].testPosition && <div className="movi-address-note">{lang === 'ht' ? 'GPS pa disponib; n ap sèvi ak Port-au-Prince kòm pwen depa tès la.' : 'GPS indisponible; Port-au-Prince est utilisé comme point de départ de test.'}</div>}
         {(selectedStreetPoint || (!destinationCoords && searchCompletedQuery === destination.trim() && searchResults.length === 0)) && <button type="button" className="movi-open-destination-map" onClick={() => setDestinationPickerOpen(true)}>📍 {lang === 'ht' ? 'Ajiste pwen an sou kat la' : 'Ajuster le point sur la carte'}</button>}
         <div className="section-heading"><div><p className="eyebrow">{t.chooseService}</p><h2>{t.vehicles}</h2></div></div>
         <div className="ride-list">{rideOptions.map((option) => <button key={option.id} className={`ride-option ${selectedRide === option.id ? 'selected' : ''}`} onClick={() => setSelectedRide(option.id)}><span className="ride-icon">{option.id === 'moto' ? '🏍️' : option.id === 'comfort' ? '🚙' : '🚕'}</span><span className="ride-copy"><strong>{option.name}</strong><small>{lang === 'fr' ? option.detailFr : option.detailHt} · {option.eta}</small></span><strong className="ride-price">{selectedRide === option.id && effectiveQuote ? `${effectiveQuote.fare_htg.toLocaleString('fr-FR')} HTG` : '—'}</strong></button>)}</div>
