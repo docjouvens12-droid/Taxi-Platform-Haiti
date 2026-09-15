@@ -410,7 +410,7 @@ export default function HomePage() {
       <button className="auth-submit" disabled={authBusy}>{authBusy ? t.wait : authMode === 'signin' ? t.signIn : t.createAccount}</button>
     </form>
     <button className="auth-switch" onClick={() => setAuthMode(authMode === 'signin' ? 'signup' : 'signin')}>{authMode === 'signin' ? t.noAccount : t.haveAccount}</button>
-  </section></main>
+  </section></main>;
 
   const panelContent = panel !== 'home' && <section className="account-panel">
     <div className="panel-header"><button onClick={() => setPanel('home')}>‹</button><strong>{panel === 'rides' ? t.myRides : panel === 'payment' ? t.paymentTitle : panel === 'profile' ? t.profileTitle : panel === 'driver' ? t.becomeDriver : t.helpTitle}</strong><span /></div>
