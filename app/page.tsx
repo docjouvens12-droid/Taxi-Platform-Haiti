@@ -12,6 +12,7 @@ type Lang = 'fr' | 'ht'
 type Panel = 'home' | 'rides' | 'payment' | 'profile' | 'driver' | 'help'
 type RideOption = { id: 'moto' | 'standard' | 'comfort'; name: string; detailFr: string; detailHt: string; eta: string }
 type Point = { lat: number; lng: number }
+const isHaitiPoint = (point: Point) => point.lat >= 17.8 && point.lat <= 20.1 && point.lng >= -74.7 && point.lng <= -71.5
 type Quote = { distance_km: number; duration_min: number; fare_htg: number }
 type SearchResult = { id: string; label: string; center: [number, number] }
 type RouteGeometry = { type: 'LineString'; coordinates: number[][] }
@@ -64,6 +65,7 @@ export default function HomePage() {
   const [password, setPassword] = useState('')
   const [pickup, setPickup] = useState(copy.fr.current)
   const [pickupCoords, setPickupCoords] = useState<Point | null>(null)
+  const [pickupStatus, setPickupStatus] = useState<'loading' | 'ready' | 'outside' | 'unavailable'>('loading')
   const [paymentMethod, setPaymentMethod] = useState<'moncash' | 'natcash'>('moncash')
   useEffect(() => {
     const sync = () => setPaymentMethod(localStorage.getItem('taxi-payment-method') === 'natcash' ? 'natcash' : 'moncash')
@@ -94,7 +96,7 @@ export default function HomePage() {
   const effectiveDestinationCoords = destinationCoords ?? resolvedDestinationCoords
   const ride = useMemo(() => rideOptions.find((o) => o.id === selectedRide) ?? rideOptions[1], [selectedRide])
   const fallbackQuote = useMemo<Quote | null>(() => {
-    if (!pickupCoords || !effectiveDestinationCoords) return null
+    if (!pickupCoords || !effectiveDestinationCoords || !isHaitiPoint(pickupCoords) || !isHaitiPoint(effectiveDestinationCoords)) return null
 
     let distanceKm = routeDistanceKm
     let durationMin = routeDurationMin
@@ -145,13 +147,17 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setPickupCoords({ lat: 18.5392, lng: -72.3364 })
-      setPickup(copy[lang].testPosition)
+      setPickupCoords(null)
+      setPickupStatus('unavailable')
       return
     }
     navigator.geolocation.getCurrentPosition(
-      (p) => setPickupCoords({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      () => { setPickupCoords({ lat: 18.5392, lng: -72.3364 }); setPickup(copy[lang].testPosition) },
+      (p) => {
+        const point = { lat: p.coords.latitude, lng: p.coords.longitude }
+        setPickupCoords(isHaitiPoint(point) ? point : null)
+        setPickupStatus(isHaitiPoint(point) ? 'ready' : 'outside')
+      },
+      () => { setPickupCoords(null); setPickupStatus('unavailable') },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
   }, [lang])
@@ -194,7 +200,7 @@ export default function HomePage() {
   }, [destination, destinationCoords, pickupCoords])
 
   useEffect(() => {
-    if (!pickupCoords || !effectiveDestinationCoords) { setRouteGeometry(null); setRouteApproximate(false); setRouteDistanceKm(null); setRouteDurationMin(null); return }
+    if (!pickupCoords || !effectiveDestinationCoords || !isHaitiPoint(pickupCoords) || !isHaitiPoint(effectiveDestinationCoords)) { setRouteGeometry(null); setRouteApproximate(false); setRouteDistanceKm(null); setRouteDurationMin(null); return }
     let cancelled = false
     setRouteGeometry(null); setRouteApproximate(false); setRouteDistanceKm(null); setRouteDurationMin(null)
     ;(async () => {
@@ -207,13 +213,13 @@ export default function HomePage() {
         if (!route || !route.geometry) throw new Error('ROUTE_UNAVAILABLE')
         if (cancelled) return
         setRouteGeometry(route.geometry); setRouteApproximate(false); setRouteDistanceKm(route.distance / 1000); setRouteDurationMin(Math.max(1, Math.round(route.duration / 60)))
-      } catch { if (!cancelled) { setRouteGeometry({ type: 'LineString', coordinates: [[pickupCoords.lng, pickupCoords.lat], [effectiveDestinationCoords.lng, effectiveDestinationCoords.lat]] }); setRouteApproximate(true); setRouteDistanceKm(null); setRouteDurationMin(null) } }
+      } catch { if (!cancelled) { setRouteGeometry(null); setRouteApproximate(false); setRouteDistanceKm(null); setRouteDurationMin(null) } }
     })()
     return () => { cancelled = true }
   }, [pickupCoords, effectiveDestinationCoords, token])
 
   useEffect(() => {
-    if (!user || !pickupCoords || !effectiveDestinationCoords) { setQuote(null); return }
+    if (!user || !pickupCoords || !effectiveDestinationCoords || !isHaitiPoint(pickupCoords) || !isHaitiPoint(effectiveDestinationCoords)) { setQuote(null); return }
     let cancelled = false
     let timeoutId: number | undefined
 
@@ -313,12 +319,20 @@ export default function HomePage() {
   }
 
   async function requestRide() {
-    if (!user || !effectiveDestinationCoords) return
+    if (!user || !effectiveDestinationCoords || !isHaitiPoint(effectiveDestinationCoords)) return
     setRequestState('requesting'); setRideError('')
     let requestPickup: Point
     try {
       requestPickup = await freshPassengerPosition()
+      if (!isHaitiPoint(requestPickup)) {
+        setPickupCoords(null)
+        setPickupStatus('outside')
+        setRideError(lang === 'ht' ? 'Pozisyon GPS ou deyò Ayiti. Chwazi yon pwen depa ann Ayiti lè ou la.' : 'Votre position GPS est hors d’Haïti. Choisissez un départ en Haïti lorsque vous y êtes.')
+        setRequestState('idle')
+        return
+      }
       setPickupCoords(requestPickup)
+      setPickupStatus('ready')
       setPickup(copy[lang].current)
     } catch {
       if (!pickupCoords) {
@@ -403,7 +417,7 @@ export default function HomePage() {
       <section className="booking-sheet"><div className="grabber" />
         <div className="greeting-row"><div><p className="eyebrow">{t.hello} {user.user_metadata?.full_name?.split(' ')[0] ?? ''} 👋</p><h1>{t.where}</h1></div><span className="online-pill">{t.drivers}</span></div>
         <div className="route-card">
-          <div className="route-line"><span className="pickup-dot" /><div className="input-wrap"><label>{t.pickup}</label><input value={pickup} readOnly /></div></div>
+          <div className="route-line"><span className="pickup-dot" /><div className="input-wrap"><label>{t.pickup}</label><input value={pickupStatus === 'outside' ? (lang === 'ht' ? 'GPS deyò Ayiti' : 'GPS hors d’Haïti') : pickupStatus === 'unavailable' ? (lang === 'ht' ? 'Pozisyon pa disponib' : 'Position indisponible') : pickup} readOnly /></div></div>
           <div className="connector" />
           <div className="route-line"><span className="destination-dot" /><div className="input-wrap">
             <label>{t.destination}</label>
@@ -427,6 +441,8 @@ export default function HomePage() {
           </div></div>
         </div>
         {(searchBusy || searchResults.length > 0) && <div className="search-results">{searchBusy && <div className="search-status">{t.searchingAddress}</div>}{searchResults.map((r) => <button key={r.id} onClick={() => chooseSearchResult(r)}><span>📍</span><strong>{r.label}</strong></button>)}</div>}
+        {pickupStatus === 'outside' && <div className="ride-error">{lang === 'ht' ? 'GPS ou montre ou deyò Ayiti. Destinasyon an sou kat la, men yon trajè MOVI bezwen yon pwen depa ann Ayiti.' : 'Votre GPS vous situe hors d’Haïti. La destination reste sur la carte, mais un trajet MOVI nécessite un départ en Haïti.'}</div>}
+        {pickupStatus === 'unavailable' && <div className="ride-error">{lang === 'ht' ? 'Nou pa ka jwenn pozisyon ou. Aktive Lokalizasyon pou chwazi yon pwen depa ann Ayiti.' : 'Position indisponible. Activez la localisation pour définir un départ en Haïti.'}</div>}
         <button type="button" className="movi-open-destination-map" onClick={() => setDestinationPickerOpen(true)}>📍 {lang === 'ht' ? 'Chwazi pwen egzak la sou kat Ayiti' : 'Choisir le point exact sur la carte d’Haïti'}</button>
         <div className="section-heading"><div><p className="eyebrow">{t.chooseService}</p><h2>{t.vehicles}</h2></div></div>
         <div className="ride-list">{rideOptions.map((option) => <button key={option.id} className={`ride-option ${selectedRide === option.id ? 'selected' : ''}`} onClick={() => setSelectedRide(option.id)}><span className="ride-icon">{option.id === 'moto' ? '🏍️' : option.id === 'comfort' ? '🚙' : '🚕'}</span><span className="ride-copy"><strong>{option.name}</strong><small>{lang === 'fr' ? option.detailFr : option.detailHt} · {option.eta}</small></span><strong className="ride-price">{selectedRide === option.id && effectiveQuote ? `${effectiveQuote.fare_htg.toLocaleString('fr-FR')} HTG` : '—'}</strong></button>)}</div>

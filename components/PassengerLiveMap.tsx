@@ -33,7 +33,7 @@ export default function PassengerLiveMap(props: Props) {
       if (disposed || !container.current) return
       const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
       if (!token || !gl.supported()) { setFailed(true); return }
-      const center = latest.current.pickup ?? { lng: -72.3364, lat: 18.5392 }
+      const center = latest.current.pickup ?? latest.current.previewDestination ?? { lng: -72.3364, lat: 18.5392 }
       const instance = new gl.Map({ container: container.current, accessToken: token, style: 'mapbox://styles/mapbox/streets-v12', center: [center.lng, center.lat], zoom: 13 })
       map.current = instance
       instance.addControl(new gl.NavigationControl({ showCompass: false }), 'top-right')
@@ -77,7 +77,10 @@ export default function PassengerLiveMap(props: Props) {
         }
       } else {
         fitted.current = ''
-        if (pickup) instance.easeTo({ center: [pickup.lng, pickup.lat], zoom: 13 })
+        if (pickup || previewDestination) {
+          const center = pickup ?? previewDestination
+          if (center) instance.easeTo({ center: [center.lng, center.lat], zoom: 13 })
+        }
       }
       return
     }
