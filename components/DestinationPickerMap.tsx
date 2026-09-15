@@ -31,6 +31,8 @@ export default function DestinationPickerMap({ pickup, initialDestination, initi
   const [point, setPoint] = useState<Point>(initialDestination ?? pickup ?? { lat: 19.4475, lng: -72.6843 })
   const [label, setLabel] = useState(lang === 'ht' ? 'Pwen chwazi sou kat la' : 'Point choisi sur la carte')
   const [resolving, setResolving] = useState(false)
+  const [preciseAddress, setPreciseAddress] = useState(false)
+  const [pinAdjusted, setPinAdjusted] = useState(false)
   const [searchQuery, setSearchQuery] = useState(initialQuery)
   const [description, setDescription] = useState(initialQuery)
   const [searchResults, setSearchResults] = useState<Array<{ id: string; label: string; center: [number, number] }>>([])
@@ -92,6 +94,7 @@ export default function DestinationPickerMap({ pickup, initialDestination, initi
     }
     map.on('move', syncCenter)
     map.on('moveend', syncCenter)
+    map.on('dragstart', () => setPinAdjusted(true))
 
     return () => {
       map.off('move', syncCenter)
@@ -107,6 +110,7 @@ export default function DestinationPickerMap({ pickup, initialDestination, initi
     const controller = new AbortController()
     const timer = window.setTimeout(async () => {
       setResolving(true)
+      setPreciseAddress(false)
       const fallback = lang === 'ht'
         ? `Pwen chwazi (${point.lat.toFixed(5)}, ${point.lng.toFixed(5)})`
         : `Point choisi (${point.lat.toFixed(5)}, ${point.lng.toFixed(5)})`
@@ -131,6 +135,7 @@ export default function DestinationPickerMap({ pickup, initialDestination, initi
           const precise = mapboxLabel(preciseFeature).label
           if (precise) {
             setLabel(precise)
+            setPreciseAddress(true)
             return
           }
         }
@@ -155,6 +160,8 @@ export default function DestinationPickerMap({ pickup, initialDestination, initi
   const hint = lang === 'ht' ? 'Deplase kat la pou mete pin nan egzakteman kote ou prale.' : 'Déplacez la carte pour placer le repère exactement à votre destination.'
   const confirm = lang === 'ht' ? 'Konfime destinasyon' : 'Confirmer la destination'
   const cancel = lang === 'ht' ? 'Anile' : 'Annuler'
+  const numberedAddress = /^\s*\d+\b/.test(description)
+  const needsPinAdjustment = numberedAddress && !preciseAddress && !pinAdjusted
 
   return (
     <div className="movi-picker-overlay">
@@ -175,7 +182,8 @@ export default function DestinationPickerMap({ pickup, initialDestination, initi
         <small>{lang === 'ht' ? 'DESTINASYON' : 'DESTINATION'}</small>
         <strong>{resolving ? (lang === 'ht' ? 'N ap jwenn adrès la…' : 'Recherche de l’adresse…') : label}</strong>
         <input className="movi-picker-description" value={description} onChange={event => setDescription(event.target.value)} placeholder={lang === 'ht' ? 'Non adrès oswa kote a' : 'Nom de l’adresse ou du lieu'} aria-label={lang === 'ht' ? 'Deskripsyon destinasyon an' : 'Description de la destination'} />
-        <button onClick={() => onConfirm(point, description.trim() || label)}>{confirm}</button>
+        {needsPinAdjustment && <p className="movi-pin-warning">{lang === 'ht' ? 'Kat la jwenn vil la sèlman. Deplase kat la pou mete pin nan sou adrès egzak la.' : 'La carte n’a trouvé que la ville. Déplacez-la pour placer le repère sur l’adresse exacte.'}</p>}
+        <button disabled={resolving || needsPinAdjustment} onClick={() => onConfirm(point, description.trim() || label)}>{confirm}</button>
       </div>
       <style jsx global>{`
         .movi-picker-overlay{position:fixed;inset:0;z-index:9999;background:#e8efec;font-family:Inter,system-ui,sans-serif}
@@ -185,10 +193,10 @@ export default function DestinationPickerMap({ pickup, initialDestination, initi
         .movi-picker-head div{background:rgba(255,255,255,.96);border-radius:18px;padding:10px 14px;box-shadow:0 8px 24px rgba(16,38,60,.14);max-width:calc(100% - 64px)}
         .movi-picker-head strong,.movi-picker-head small{display:block}.movi-picker-head strong{font-size:16px;color:#10263c}.movi-picker-head small{margin-top:2px;font-size:11px;line-height:1.3;color:#6c7d76}
         .movi-picker-search{position:absolute;top:calc(max(18px,env(safe-area-inset-top)) + 72px);left:16px;right:16px;z-index:5;display:grid;grid-template-columns:1fr 48px;background:#fff;border-radius:15px;padding:4px;box-shadow:0 8px 24px rgba(16,38,60,.16)}.movi-picker-search input{min-width:0;border:0;padding:10px;font-size:14px;outline:none}.movi-picker-search>button{border:0;border-radius:11px;background:#0f705a;color:#fff;font-size:25px}.movi-picker-search>button:disabled{opacity:.5}.movi-picker-results{grid-column:1/-1;display:grid;max-height:190px;overflow:auto}.movi-picker-results button{border:0;border-top:1px solid #e5ece9;background:#fff;padding:10px;text-align:left;font-size:12px;color:#10263c}.movi-picker-haiti{position:absolute;right:16px;bottom:230px;z-index:5;border:0;border-radius:999px;background:#fff;color:#0f705a;padding:9px 12px;font-size:11px;font-weight:900;box-shadow:0 8px 24px rgba(16,38,60,.16)}
-        .movi-center-pin{position:absolute;left:50%;top:46%;transform:translate(-50%,-100%);z-index:3;width:48px;height:48px;border-radius:50% 50% 50% 0;rotate:-45deg;background:#0f705a;border:4px solid #fff;box-shadow:0 8px 24px rgba(0,0,0,.28);display:grid;place-items:center;pointer-events:none}
+        .movi-center-pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);z-index:3;width:48px;height:48px;border-radius:50% 50% 50% 0;rotate:-45deg;background:#0f705a;border:4px solid #fff;box-shadow:0 8px 24px rgba(0,0,0,.28);display:grid;place-items:center;pointer-events:none}
         .movi-center-pin span{rotate:45deg;color:#fff;font-size:18px}
         .movi-picker-sheet{position:absolute;left:0;right:0;bottom:0;z-index:4;background:#fff;border-radius:28px 28px 0 0;padding:12px 20px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px rgba(16,38,60,.14)}
-        .movi-grabber{width:48px;height:5px;border-radius:999px;background:#d5dfdc;margin:0 auto 16px}.movi-picker-sheet>small{display:block;color:#0f705a;font-weight:900;letter-spacing:.16em;font-size:11px}.movi-picker-sheet>strong{display:block;margin:6px 0 10px;color:#10263c;font-size:18px;line-height:1.25}.movi-picker-description{width:100%;box-sizing:border-box;margin-bottom:12px;padding:12px;border:1px solid #dce7e3;border-radius:12px;font-size:13px;color:#10263c}.movi-picker-sheet>button{width:100%;border:0;border-radius:18px;padding:17px;background:#102f4a;color:#fff;font-size:17px;font-weight:900}
+        .movi-grabber{width:48px;height:5px;border-radius:999px;background:#d5dfdc;margin:0 auto 16px}.movi-picker-sheet>small{display:block;color:#0f705a;font-weight:900;letter-spacing:.16em;font-size:11px}.movi-picker-sheet>strong{display:block;margin:6px 0 10px;color:#10263c;font-size:18px;line-height:1.25}.movi-picker-description{width:100%;box-sizing:border-box;margin-bottom:12px;padding:12px;border:1px solid #dce7e3;border-radius:12px;font-size:13px;color:#10263c}.movi-pin-warning{margin:0 0 12px;color:#9a4b12;font-size:12px;font-weight:750;line-height:1.35}.movi-picker-sheet>button{width:100%;border:0;border-radius:18px;padding:17px;background:#102f4a;color:#fff;font-size:17px;font-weight:900}.movi-picker-sheet>button:disabled{opacity:.5;cursor:not-allowed}
         .movi-pickup-dot{width:20px;height:20px;border-radius:50%;background:#1f7ae0;border:4px solid #fff;box-shadow:0 4px 12px rgba(16,38,60,.3)}
       `}</style>
     </div>
