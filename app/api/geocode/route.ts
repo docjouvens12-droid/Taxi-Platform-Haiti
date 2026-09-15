@@ -6,7 +6,7 @@ const SEARCH_TYPES = 'address,street,neighborhood,locality,place,district,region
 const PRECISE_TYPES = new Set(['address', 'street'])
 
 const KNOWN_CITY_FALLBACKS: Array<{ keys: string[]; label: string; center: [number, number] }> = [
-  { keys: ['les gonaives', 'gonaives', 'gonayiv'], label: 'Les Gonaïves, Artibonite, Haïti', center: [-72.6843, 19.4475] },
+  { keys: ['les gonaives', 'gonaives', 'gonayiv'], label: 'Les Gonaives, Artibonite, Haiti', center: [-72.6843, 19.4475] },
   { keys: ['port au prince', 'potoprens'], label: 'Port-au-Prince, Ouest, Haïti', center: [-72.3364, 18.5392] },
   { keys: ['delmas'], label: 'Delmas, Ouest, Haïti', center: [-72.2962, 18.5447] },
   { keys: ['petion ville', 'petion-ville', 'petyonvil'], label: 'Pétion-Ville, Ouest, Haïti', center: [-72.2852, 18.5125] },
@@ -31,7 +31,8 @@ function completeLabel(props: any, fallbackName = '') {
   const placeFormatted = String(props?.place_formatted || '').trim()
   if (fullAddress && normalize(fullAddress) !== normalize(name)) return fullAddress
   if (name && placeFormatted && !normalize(placeFormatted).startsWith(normalize(name))) return `${name}, ${placeFormatted}`
-  return fullAddress || placeFormatted || name || 'Destination'
+  const label = fullAddress || placeFormatted || name || 'Destination'
+  return /haiti/i.test(label) ? label : `${label}, Haiti`
 }
 
 function looksLikeStreetAddress(query: string) {
@@ -66,18 +67,6 @@ function buildAddressVariants(query: string) {
     }
   }
   return Array.from(variants)
-}
-
-function knownCityFallback(query: string): Result | null {
-  const normalizedQuery = normalize(query)
-  const match = KNOWN_CITY_FALLBACKS.find(city => city.keys.some(key => normalizedQuery.includes(normalize(key))))
-  if (!match) return null
-  return {
-    id: `fallback-${normalize(match.label).replace(/\s+/g, '-')}`,
-    label: match.label,
-    center: match.center,
-    featureType: 'place',
-  }
 }
 
 function exactKnownCity(query: string): Result | null {
@@ -163,13 +152,20 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const variants = buildAddressVariants(q).slice(0, 4)
-    const mapboxBatches = await Promise.all([...variants.map(variant => searchMapboxV6(variant, true)), searchMapboxV6(q, false)])
-    const hasMapboxPrecise = mapboxBatches.some(batch => batch.some(result => PRECISE_TYPES.has(result.featureType || '')))
-    const extraBatches = addressLike && !hasMapboxPrecise
-      ? await Promise.all([searchMapboxSearchBox(q)])
-      : []
-    const batches: Result[][] = [...mapboxBatches, ...extraBatches]
+    const batches: Result[][] = []
+    const variants = buildAddressVariants(q)
+    batches.push(...await Promise.all(variants.map(variant => searchMapboxV6(variant, true))))
+
+    let hasPrecise = batches.some(batch => batch.some(result => PRECISE_TYPES.has(result.featureType || '')))
+    if (!hasPrecise && addressLike) {
+      batches.push(...await Promise.all(variants.map(variant => searchMapboxSearchBox(variant))))
+      hasPrecise = batches.some(batch => batch.some(result => PRECISE_TYPES.has(result.featureType || '')))
+    }
+    if (!hasPrecise && addressLike) {
+      batches.push(await searchOpenStreetMap(q))
+      hasPrecise = batches.some(batch => batch.some(result => PRECISE_TYPES.has(result.featureType || '')))
+    }
+    if (!batches.some(batch => batch.length)) batches.push(await searchMapboxV6(q, false))
 
     const deduped = new Map<string, Result>()
     for (const batch of batches) {
@@ -180,6 +176,18 @@ export async function GET(request: NextRequest) {
     }
 
     let results = Array.from(deduped.values())
+    if (!results.length && addressLike) {
+      const normalizedAddress = normalize(q)
+      const city = KNOWN_CITY_FALLBACKS.find((item) => item.keys.some((key) => normalizedAddress.includes(normalize(key))))
+      if (city) {
+        results = [{
+          id: `address-fallback-${normalize(q).replace(/\s+/g, '-')}`,
+          label: `${city.label}\n${q}`,
+          center: city.center,
+          featureType: 'street',
+        }]
+      }
+    }
     const normalizedQuery = normalize(q)
     const tokens = queryTokens(q)
 
@@ -200,9 +208,10 @@ export async function GET(request: NextRequest) {
       const precise = results.filter(result => PRECISE_TYPES.has(result.featureType || ''))
       if (precise.length) results = precise
       else {
-        const fallback = knownCityFallback(q)
-        const center = fallback?.center ?? [-72.65, 19.05] as [number, number]
-        results = [{ id: `typed-${normalize(q).replace(/\s+/g, '-')}`, label: q.trim(), center, featureType: 'locality' }]
+        // Geocoders often return the matching street rather than a house
+        // number. Keep that street center as a usable destination fallback.
+        const streets = results.filter(result => ['street', 'road'].includes(result.featureType || ''))
+        results = streets
       }
     } else {
       const relevant = results.filter(result => {

@@ -80,7 +80,7 @@ export default function AdminDriversPage() {
       <div className="topActions"><select value={lang} onChange={e=>changeLang(e.target.value as Lang)}><option value="fr">FR</option><option value="ht">KR</option></select><button className="logout" onClick={()=>void logout()}>{t.logout}</button></div>
     </header>
 
-    <div className="hero"><div className="brandmark">🚕</div><div><small>Taxi Platform Haiti</small><h1>{t.title}</h1><p>{t.subtitle}</p></div></div>
+    <div className="hero"><div className="brandmark">🚕</div><div><small>MOVI</small><h1>{t.title}</h1><p>{t.subtitle}</p></div></div>
 
     <div className="stats"><button onClick={()=>setFilter('pending')}><span>⏳</span><strong>{pendingCount}</strong><small>{t.pendingCount}</small></button><button onClick={()=>setFilter('approved')}><span>✓</span><strong>{approvedCount}</strong><small>{t.approvedCount}</small></button><button onClick={()=>setFilter('all')}><span>👥</span><strong>{rows.length}</strong><small>{t.totalCount}</small></button></div>
 

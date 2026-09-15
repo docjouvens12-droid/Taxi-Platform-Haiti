@@ -145,8 +145,8 @@ export default function PassengerHelpMenuPolish() {
       }
 
       return ht
-        ? `Mwen ka verifye done Taxi Haiti ou an tan reyèl. Kounye a trajè ki pi resan an ${status}. Ou ka mande m sou trajè a, pri a oswa peman an.`
-        : `Je peux vérifier vos données Taxi Haiti en temps réel. Le trajet le plus récent est actuellement ${status}. Vous pouvez me demander son statut, son prix ou son paiement.`
+        ? `Mwen ka verifye done MOVI ou an tan reyèl. Kounye a trajè ki pi resan an ${status}. Ou ka mande m sou trajè a, pri a oswa peman an.`
+        : `Je peux vérifier vos données MOVI en temps réel. Le trajet le plus récent est actuellement ${status}. Vous pouvez me demander son statut, son prix ou son paiement.`
     }
 
     const apply = () => {
@@ -172,7 +172,7 @@ export default function PassengerHelpMenuPolish() {
       const aiBox = document.createElement('div')
       aiBox.className = 'passenger-ai-box'
       aiBox.innerHTML = `
-        <div class="passenger-ai-head"><span>${ht ? 'Asistan Taxi Haiti' : 'Assistant Taxi Haiti'}</span><span class="passenger-ai-beta">LIVE BETA</span></div>
+        <div class="passenger-ai-head"><span>${ht ? 'Asistan MOVI' : 'Assistant MOVI'}</span><span class="passenger-ai-beta">LIVE BETA</span></div>
         <div class="passenger-ai-message" aria-live="polite">${ht ? 'Mwen ka verifye trajè, pri ak peman ou an tan reyèl. Poze m yon kesyon.' : 'Je peux vérifier votre trajet, son prix et votre paiement en temps réel. Posez-moi une question.'}</div>
         <div class="passenger-ai-form"><input class="passenger-ai-input" type="text" placeholder="${ht ? 'Ekri kesyon ou…' : 'Écrivez votre question…'}" /><button class="passenger-ai-send" type="button">${ht ? 'Voye' : 'Envoyer'}</button></div>
       `

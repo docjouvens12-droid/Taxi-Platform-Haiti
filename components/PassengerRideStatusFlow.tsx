@@ -5,121 +5,21 @@ import { createPortal } from 'react-dom'
 import PassengerArrivalNotice from './PassengerArrivalNotice'
 import { supabase } from '../lib/supabase'
 
-type RideStatus = 'requested' | 'accepted' | 'driver_arriving' | 'in_progress' | 'completed' | 'cancelled'
+import { type PassengerRide } from './PassengerRideProvider'
 
-type RideRow = {
-  id: string
-  status: RideStatus
-  driver_id: string | null
-  pickup_address: string
-  destination_address: string
-  service_type: 'moto' | 'standard' | 'comfort'
-  estimated_fare_htg: number | null
-  final_fare_htg: number | null
-  requested_at: string
-  accepted_at: string | null
-  started_at: string | null
-  completed_at: string | null
-  cancelled_at: string | null
-}
-
-const terminalFreshMs = 10 * 60 * 1000
-
-export default function PassengerRideStatusFlow() {
-  const [ride, setRide] = useState<RideRow | null>(null)
-  const [target, setTarget] = useState<HTMLElement | null>(null)
-  const [ht, setHt] = useState(false)
+export default function PassengerRideStatusFlow({ ride, ht, onDismiss }: { ride: PassengerRide; ht: boolean; onDismiss: () => void }) {
   const [rating, setRating] = useState(0)
   const [ratingBusy, setRatingBusy] = useState(false)
   const [ratingDone, setRatingDone] = useState(false)
   const [ratingError, setRatingError] = useState('')
-
   useEffect(() => {
-    const findTarget = () => setTarget(document.querySelector<HTMLElement>('.shell .booking-sheet'))
-    findTarget()
-    const timer = window.setInterval(findTarget, 1000)
-    return () => window.clearInterval(timer)
-  }, [])
-
-  useEffect(() => {
+    if (ride.status !== 'completed') return
     let alive = true
-
-    const syncLang = () => setHt(window.localStorage.getItem('taxi-language') === 'ht')
-    syncLang()
-
-    async function loadRide() {
-      const { data: auth } = await supabase.auth.getUser()
-      const userId = auth.user?.id
-      if (!alive || !userId) {
-        if (alive) setRide(null)
-        return
-      }
-
-      const { data, error } = await supabase
-        .from('rides')
-        .select('id,status,driver_id,pickup_address,destination_address,service_type,estimated_fare_htg,final_fare_htg,requested_at,accepted_at,started_at,completed_at,cancelled_at')
-        .eq('passenger_id', userId)
-        .order('requested_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (!alive || error || !data) {
-        if (alive) setRide(null)
-        return
-      }
-
-      const row = data as RideRow
-      const dismissed = window.localStorage.getItem('movi-dismissed-terminal-ride')
-      if ((row.status === 'completed' || row.status === 'cancelled') && dismissed === row.id) {
-        setRide(null)
-        return
-      }
-
-      if (row.status === 'completed' || row.status === 'cancelled') {
-        const terminalAt = row.status === 'completed' ? row.completed_at : row.cancelled_at
-        if (!terminalAt || Date.now() - new Date(terminalAt).getTime() > terminalFreshMs) {
-          setRide(null)
-          return
-        }
-      }
-
-      if (row.status === 'completed') {
-        const { data: existing } = await supabase
-          .from('ride_ratings')
-          .select('rating')
-          .eq('ride_id', row.id)
-          .maybeSingle()
-        if (existing?.rating) {
-          setRating(Number(existing.rating))
-          setRatingDone(true)
-        }
-      }
-
-      setRide(row)
-    }
-
-    void loadRide()
-    const timer = window.setInterval(() => void loadRide(), 1200)
-    window.addEventListener('storage', syncLang)
-
-    return () => {
-      alive = false
-      window.clearInterval(timer)
-      window.removeEventListener('storage', syncLang)
-    }
-  }, [])
-
-  const active = ride && ride.status !== 'requested'
-
-  useEffect(() => {
-    const sheet = document.querySelector<HTMLElement>('.shell .booking-sheet')
-    if (!sheet) return
-    if (active) sheet.classList.add('movi-passenger-ride-active')
-    else sheet.classList.remove('movi-passenger-ride-active')
-    return () => sheet.classList.remove('movi-passenger-ride-active')
-  }, [active])
-
-  if (!ride || ride.status === 'requested' || !target || !document.contains(target)) return null
+    void supabase.from('ride_ratings').select('rating').eq('ride_id', ride.id).maybeSingle().then(({ data }) => {
+      if (alive && data?.rating) { setRating(Number(data.rating)); setRatingDone(true) }
+    })
+    return () => { alive = false }
+  }, [ride.id, ride.status])
 
   const status = ride.status
   const stage = status === 'accepted' ? 1 : status === 'driver_arriving' ? 2 : status === 'in_progress' ? 3 : 4
@@ -146,12 +46,6 @@ export default function PassengerRideStatusFlow() {
           ? (ht ? 'Ou rive. Tanpri evalye chofè a anvan ou fè yon nouvo kous.' : 'Vous êtes arrivé. Veuillez évaluer votre chauffeur avant une nouvelle course.')
           : (ht ? 'Kous sa a pa aktif ankò.' : 'Cette course n’est plus active.')
 
-  const dismissTerminal = () => {
-    window.localStorage.setItem('movi-dismissed-terminal-ride', ride.id)
-    setRide(null)
-    window.setTimeout(() => window.location.reload(), 80)
-  }
-
   const submitRating = async () => {
     if (status !== 'completed' || rating < 1 || rating > 5 || ratingBusy) return
     setRatingBusy(true)
@@ -169,7 +63,7 @@ export default function PassengerRideStatusFlow() {
     setRatingDone(true)
   }
 
-  return createPortal(
+  return (
     <div className={`movi-passenger-flow-card ${isTerminal ? 'terminal' : ''} ${driverArrived ? 'arrived' : ''}`} aria-live="polite">
       <PassengerArrivalNotice rideId={ride.id} status={status} ht={ht} />
       <style>{`
@@ -202,6 +96,7 @@ export default function PassengerRideStatusFlow() {
       </div>
       {status === 'completed' && <div className="movi-passenger-fare"><span>{ht ? 'Pri final trajè a' : 'Prix final du trajet'}</span><strong>{ride.final_fare_htg == null ? '—' : `${Number(ride.final_fare_htg).toLocaleString('fr-HT')} HTG`}</strong></div>}
 
+      {status === 'completed' && <p><strong>{Number(ride.final_fare_htg ?? ride.estimated_fare_htg ?? 0).toLocaleString('fr-FR')} HTG</strong></p>}
       {status === 'completed' && !ratingDone && <div className="movi-passenger-rating">
         <strong>{ht ? 'Kijan chofè a te ye?' : 'Comment était votre chauffeur ?'}</strong>
         <small>{ht ? 'Chwazi ant 1 ak 5 zetwal.' : 'Choisissez une note de 1 à 5 étoiles.'}</small>
@@ -214,8 +109,7 @@ export default function PassengerRideStatusFlow() {
 
       {status === 'completed' && ratingDone && <div className="movi-passenger-rating-thanks">{ht ? `Mèsi! Ou bay chofè a ${rating}/5 ⭐` : `Merci ! Vous avez donné ${rating}/5 ⭐ au chauffeur.`}</div>}
 
-      {(status === 'cancelled' || (status === 'completed' && ratingDone)) && <button type="button" className="movi-passenger-terminal-button" onClick={dismissTerminal}>{ht ? 'Mande yon nouvo kous' : 'Commander une nouvelle course'}</button>}
-    </div>,
-    target,
+      {(status === 'cancelled' || (status === 'completed' && ratingDone)) && <button type="button" className="movi-passenger-terminal-button" onClick={onDismiss}>{ht ? 'Mande yon nouvo kous' : 'Commander une nouvelle course'}</button>}
+    </div>
   )
 }

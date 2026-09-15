@@ -43,7 +43,7 @@ export default function PassengerCompleteRegistrationPage() {
   const ht=lang==='ht'
   return <main className="page">
     <section className="card">
-      <header><div className="logo">🚕</div><div><strong>Taxi Platform Haiti</strong><small>{ht?'Fini enskripsyon pasaje ou':'Finalisez votre inscription passager'}</small></div></header>
+      <header><div className="logo">🚕</div><div><strong>MOVI</strong><small>{ht?'Fini enskripsyon pasaje ou':'Finalisez votre inscription passager'}</small></div></header>
       <div className="hero"><span>👤</span><h1>{ht?'Fini enskripsyon ou':'Terminez votre inscription'}</h1><p>{ht?'Ajoute enfòmasyon debaz sa yo anvan ou antre nan espas pasaje a.':'Ajoutez ces informations de base avant d’accéder à votre espace passager.'}</p></div>
       <form onSubmit={submit}>
         <label>{ht?'Imel verifye':'E-mail vérifié'}</label><input value={email} disabled />

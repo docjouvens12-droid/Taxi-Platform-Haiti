@@ -9,10 +9,10 @@ type CheckRow = { check_key: string; ok: boolean; detail: string }
 
 const copy = {
   fr: {
-    title: 'État du système', subtitle: 'Surveillez les services essentiels de Taxi Platform Haiti', loading: 'Vérification en cours…', denied: 'Accès réservé aux administrateurs.', healthy: 'Tous les systèmes sont opérationnels', issue: 'Intervention requise', refresh: 'Relancer les contrôles', back: 'Administration', passed: 'Opérationnels', failed: 'À vérifier', total: 'Contrôles', score: 'Disponibilité', allGood: 'Tous les contrôles critiques sont au vert.', someFail: 'Un ou plusieurs composants nécessitent une vérification.', lastCheck: 'Dernière vérification', all: 'Tous', showPassed: 'Réussis', showFailed: 'Échecs', noRows: 'Aucun contrôle dans ce filtre.', realtime: 'Surveillance système', detail: 'Détail du contrôle'
+    title: 'État du système', subtitle: 'Surveillez les services essentiels de MOVI', loading: 'Vérification en cours…', denied: 'Accès réservé aux administrateurs.', healthy: 'Tous les systèmes sont opérationnels', issue: 'Intervention requise', refresh: 'Relancer les contrôles', back: 'Administration', passed: 'Opérationnels', failed: 'À vérifier', total: 'Contrôles', score: 'Disponibilité', allGood: 'Tous les contrôles critiques sont au vert.', someFail: 'Un ou plusieurs composants nécessitent une vérification.', lastCheck: 'Dernière vérification', all: 'Tous', showPassed: 'Réussis', showFailed: 'Échecs', noRows: 'Aucun contrôle dans ce filtre.', realtime: 'Surveillance système', detail: 'Détail du contrôle'
   },
   ht: {
-    title: 'Eta sistèm nan', subtitle: 'Siveye sèvis enpòtan Taxi Platform Haiti yo', loading: 'N ap verifye sistèm nan…', denied: 'Se administratè sèlman ki gen aksè.', healthy: 'Tout sistèm yo ap fonksyone', issue: 'Bezwen entèvansyon', refresh: 'Relanse kontwòl yo', back: 'Administrasyon', passed: 'Ap fonksyone', failed: 'Pou verifye', total: 'Kontwòl', score: 'Disponibilite', allGood: 'Tout kontwòl kritik yo vèt.', someFail: 'Gen youn oswa plizyè sèvis ki bezwen verifye.', lastCheck: 'Dènye verifikasyon', all: 'Tout', showPassed: 'Ki pase', showFailed: 'Ki echwe', noRows: 'Pa gen kontwòl nan filtè sa a.', realtime: 'Siveyans sistèm', detail: 'Detay kontwòl la'
+    title: 'Eta sistèm nan', subtitle: 'Siveye sèvis enpòtan MOVI yo', loading: 'N ap verifye sistèm nan…', denied: 'Se administratè sèlman ki gen aksè.', healthy: 'Tout sistèm yo ap fonksyone', issue: 'Bezwen entèvansyon', refresh: 'Relanse kontwòl yo', back: 'Administrasyon', passed: 'Ap fonksyone', failed: 'Pou verifye', total: 'Kontwòl', score: 'Disponibilite', allGood: 'Tout kontwòl kritik yo vèt.', someFail: 'Gen youn oswa plizyè sèvis ki bezwen verifye.', lastCheck: 'Dènye verifikasyon', all: 'Tout', showPassed: 'Ki pase', showFailed: 'Ki echwe', noRows: 'Pa gen kontwòl nan filtè sa a.', realtime: 'Siveyans sistèm', detail: 'Detay kontwòl la'
   }
 }
 
@@ -73,7 +73,7 @@ export default function AdminSystemCheckPage() {
       <div className="topRight"><span className="live">● {t.realtime}</span><select value={lang} onChange={e => { const v=e.target.value as Lang; setLang(v); localStorage.setItem('taxi-language', v) }}><option value="fr">Français</option><option value="ht">Kreyòl</option></select></div>
     </div>
 
-    <div className="brand"><span>⚙️</span><div><strong>Taxi Platform Haiti</strong><small>{t.subtitle}</small></div></div>
+    <div className="brand"><span>⚙️</span><div><strong>MOVI</strong><small>{t.subtitle}</small></div></div>
     <div className="titleRow"><div><h1>{t.title}</h1><p>{t.subtitle}</p></div><button className="refresh" onClick={() => void load()} disabled={loading}>↻ {t.refresh}</button></div>
 
     <div className={`heroStatus ${failed === 0 && rows.length ? 'good' : 'bad'}`}>

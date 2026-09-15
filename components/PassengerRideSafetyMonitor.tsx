@@ -203,8 +203,8 @@ export default function PassengerRideSafetyMonitor() {
     const destination = ride.destination_address?.trim() || '—'
     const plate = ride.plate_number?.trim() || '—'
     return lang === 'ht'
-      ? `Alèt sekirite Taxi Platform Haiti.\nTrajè mwen an toujou aktif.\nChofè: ${driver}\nMachin: ${vehicle}\nPlak: ${plate}\nSoti: ${pickup}\nAle: ${destination}`
-      : `Alerte de sécurité Taxi Platform Haiti.\nMon trajet est toujours actif.\nChauffeur : ${driver}\nVéhicule : ${vehicle}\nPlaque : ${plate}\nDépart : ${pickup}\nDestination : ${destination}`
+      ? `Alèt sekirite MOVI.\nTrajè mwen an toujou aktif.\nChofè: ${driver}\nMachin: ${vehicle}\nPlak: ${plate}\nSoti: ${pickup}\nAle: ${destination}`
+      : `Alerte de sécurité MOVI.\nMon trajet est toujours actif.\nChauffeur : ${driver}\nVéhicule : ${vehicle}\nPlaque : ${plate}\nDépart : ${pickup}\nDestination : ${destination}`
   }, [ride, lang])
 
   if (!enabled || !ride || !alertKind) return null
@@ -237,7 +237,7 @@ export default function PassengerRideSafetyMonitor() {
 
   async function share() {
     try {
-      if (navigator.share) await navigator.share({ title: 'Taxi Platform Haiti', text: shareText })
+      if (navigator.share) await navigator.share({ title: 'MOVI', text: shareText })
       else if (navigator.clipboard) await navigator.clipboard.writeText(shareText)
     } catch {
       // User may cancel the native share sheet.

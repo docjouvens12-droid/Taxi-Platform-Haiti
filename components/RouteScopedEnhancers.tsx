@@ -8,7 +8,12 @@ import PassengerPaymentStableInline from './PassengerPaymentStableInline'
 import PassengerLanguageSwitchStable from './PassengerLanguageSwitchStable'
 import PassengerHelpStableInline from './PassengerHelpStableInline'
 import PassengerLogoutStable from './PassengerLogoutStable'
-import PassengerTypedAddressPreview from './PassengerTypedAddressPreview'
+import PassengerMenuPolish from './PassengerMenuPolish'
+import PassengerMenuCompactPolish from './PassengerMenuCompactPolish'
+import PassengerMenuFinalConsistency from './PassengerMenuFinalConsistency'
+import PassengerMenuIconDedupPolish from './PassengerMenuIconDedupPolish'
+import PassengerRideHistoryMenuPolish from './PassengerRideHistoryMenuPolish'
+import PassengerMenuVisibilityFix from './PassengerMenuVisibilityFix'
 import PassengerDashboardPaymentPanel from './PassengerDashboardPaymentPanel'
 import PassengerAcceptedRideMiniMap from './PassengerAcceptedRideMiniMap'
 import PassengerMiniMapMetricsNarrow from './PassengerMiniMapMetricsNarrow'
@@ -71,14 +76,17 @@ export default function RouteScopedEnhancers() {
       <PassengerLanguageSwitchStable />
       <PassengerHelpStableInline />
       <PassengerLogoutStable />
-      <PassengerTypedAddressPreview />
+      <PassengerMenuPolish />
+      <PassengerMenuCompactPolish />
+      <PassengerMenuFinalConsistency />
+      <PassengerMenuIconDedupPolish />
+      <PassengerRideHistoryMenuPolish />
+      <PassengerMenuVisibilityFix />
       <PassengerDashboardPaymentPanel />
       <PassengerAcceptedRideMiniMap />
       <PassengerActiveDriver />
       <RideCommunicationPanel />
       <PassengerMiniMapMetricsNarrow />
-      <PassengerRideStatusFlow />
-      <PassengerPendingRideCancel />
     </>}
 
     {isCleanDriverDashboard && <>

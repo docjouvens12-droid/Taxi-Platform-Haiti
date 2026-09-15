@@ -121,7 +121,7 @@ export default function AdminReconciliationPage(){
 
   return <main className="page"><section className="card">
     <div className="top"><button onClick={()=>location.href='/admin'}>‹ {t.back}</button><div className="topRight"><span className="live">● LIVE</span><select value={lang} onChange={e=>changeLang(e.target.value as Lang)}><option value="fr">Français</option><option value="ht">Kreyòl</option></select></div></div>
-    <div className="brand"><span>R</span><div><strong>Taxi Platform Haiti</strong><small>{t.subtitle}</small></div></div>
+    <div className="brand"><span>R</span><div><strong>MOVI</strong><small>{t.subtitle}</small></div></div>
     <h1>{t.title}</h1>
 
     <div className="stats"><div><small>{t.total}</small><strong>{rows.length}</strong></div><div className="critical"><small>{t.critical}</small><strong>{counts.critical}</strong></div><div className="high"><small>{t.high}</small><strong>{counts.high}</strong></div><div className="open"><small>{t.openCases}</small><strong>{counts.open}</strong></div></div>

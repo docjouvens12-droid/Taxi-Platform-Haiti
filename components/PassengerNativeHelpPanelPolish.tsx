@@ -67,7 +67,7 @@ export default function PassengerNativeHelpPanelPolish() {
       body.className = 'panel-body native-help-center'
       body.innerHTML = `
         <div class="native-help-card">
-          <button type="button" class="native-help-title"><span>🤖</span><b>${ht ? 'Asistan Taxi Haiti' : 'Assistant Taxi Haiti'}</b><span>›</span></button>
+          <button type="button" class="native-help-title"><span>🤖</span><b>${ht ? 'Asistan MOVI' : 'Assistant MOVI'}</b><span>›</span></button>
           <div class="native-help-body">
             <div class="native-help-ai-answer">${ht ? 'Mwen ka verifye dènye trajè ou, pri, peman, chofè ak machin si done yo disponib.' : 'Je peux vérifier votre dernier trajet, son prix, son paiement, son chauffeur et son véhicule si les données sont disponibles.'}</div>
             <input class="native-help-input native-help-ai-input" placeholder="${ht ? 'Ekri kesyon ou…' : 'Écrivez votre question…'}" />
@@ -112,7 +112,7 @@ export default function PassengerNativeHelpPanelPolish() {
         <div class="native-help-card native-help-emergency">
           <button type="button" class="native-help-title"><span>🆘</span><b>${ht ? 'Sekirite ijan' : 'Sécurité urgente'}</b><span>›</span></button>
           <div class="native-help-body">
-            <div>${ht ? 'Pou danje imedya, kontakte sèvis ijans lokal yo an premye. Bouton sa a voye yon rapò ijans bay admin Taxi Haiti; li pa rele sèvis ijans otomatikman.' : 'En cas de danger immédiat, contactez d’abord les services d’urgence locaux. Ce bouton envoie un signalement urgent à l’administrateur Taxi Haiti; il n’appelle pas automatiquement les secours.'}</div>
+            <div>${ht ? 'Pou danje imedya, kontakte sèvis ijans lokal yo an premye. Bouton sa a voye yon rapò ijans bay admin MOVI; li pa rele sèvis ijans otomatikman.' : 'En cas de danger immédiat, contactez d’abord les services d’urgence locaux. Ce bouton envoie un signalement urgent à l’administrateur MOVI; il n’appelle pas automatiquement les secours.'}</div>
             <textarea class="native-help-text native-help-emergency-text" maxlength="2000" placeholder="${ht ? 'Eksplike sitiyasyon an…' : 'Décrivez la situation…'}"></textarea>
             <button type="button" class="native-help-send native-help-emergency-send">${ht ? 'Voye rapò IJAN' : 'Envoyer le signalement URGENT'}</button>
             <div class="native-help-status native-help-emergency-status"></div>

@@ -1,10 +1,14 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import DestinationPickerMap from '../components/DestinationPickerMap'
+
+import { usePassengerRide } from '../components/PassengerRideProvider'
+import PassengerRideStatusFlow from '../components/PassengerRideStatusFlow'
+import PassengerPendingRideCancel from '../components/PassengerPendingRideCancel'
 
 const TaxiMap = dynamic(() => import('../components/TaxiMap'), { ssr: false })
 
@@ -175,11 +179,23 @@ export default function HomePage() {
       return
     }
 
+    const normalizedQuery = query.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    if (normalizedQuery.includes('gonaives')) {
+      const street = query.replace(/\s*gona[iï]ves\s*$/i, '').replace(/^\s*,\s*/, '').trim()
+      setDestinationDisplay({ city: 'Les Gonaives, Artibonite, Haiti', street: street || 'Centre-ville' })
+      setSearchResults([{ id: `gonaives-${normalizedQuery}`, label: `Les Gonaives, Artibonite, Haiti\n${street || 'Centre-ville'}`, center: [-72.6843, 19.4475] }])
+      setSearchMessage('')
+      setSearchBusy(false)
+      return
+    }
+
+    let cancelled = false
     let controller: AbortController | null = null
     const timer = window.setTimeout(async () => {
       controller = new AbortController()
       const abortTimer = window.setTimeout(() => controller?.abort(), 12500)
       setSearchBusy(true)
+      setSearchMessage('')
       try {
         const params = new URLSearchParams({ q: query })
         if (pickupCoords) {
@@ -189,6 +205,7 @@ export default function HomePage() {
         const response = await fetch(`/api/geocode?${params.toString()}`, { signal: controller.signal, cache: 'no-store' })
         if (!response.ok) throw new Error(`GEOCODE_${response.status}`)
         const json = await response.json()
+        if (cancelled) return
         setSearchResults((json.results ?? []) as SearchResult[])
         setSearchCompletedQuery(query)
       } catch {
@@ -196,15 +213,16 @@ export default function HomePage() {
         setSearchCompletedQuery(query)
       } finally {
         window.clearTimeout(abortTimer)
-        setSearchBusy(false)
+        if (!cancelled) setSearchBusy(false)
       }
     }, 800)
 
     return () => {
+      cancelled = true
       window.clearTimeout(timer)
       controller?.abort()
     }
-  }, [destination, destinationCoords, pickupCoords])
+  }, [destination, destinationCoords, pickupCoords, lang])
 
   useEffect(() => {
     if (!pickupCoords || !effectiveDestinationCoords || !isHaitiPoint(pickupCoords) || !isHaitiPoint(effectiveDestinationCoords)) { setRouteGeometry(null); setRouteApproximate(false); setRouteDistanceKm(null); setRouteDurationMin(null); return }
@@ -232,7 +250,7 @@ export default function HomePage() {
 
     const runQuote = async () => {
       setRideError('')
-      if (!fallbackQuote) setRequestState((s) => s === 'searching' ? s : 'quoting')
+      if (!fallbackQuote) setRequestState((s) => (s === 'searching' || s === 'requesting') ? s : 'quoting')
 
       const args = {
         p_service_type: selectedRide,
@@ -278,7 +296,7 @@ export default function HomePage() {
         }
       } finally {
         if (timeoutId) window.clearTimeout(timeoutId)
-        if (!cancelled) setRequestState((s) => s === 'searching' ? s : 'idle')
+        if (!cancelled) setRequestState((s) => (s === 'searching' || s === 'requesting') ? s : 'idle')
       }
     }
 
@@ -327,6 +345,13 @@ export default function HomePage() {
         { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
       )
     })
+  }
+
+  function newRide() {
+    dismissRide()
+    setDestination(''); setDestinationCoords(null); setResolvedDestinationCoords(null)
+    setQuote(null); setRouteGeometry(null); setRouteDistanceKm(null); setRouteDurationMin(null)
+    setSearchResults([]); setSearchMessage(''); setRideId(null); setRideError(''); setRequestState('idle')
   }
 
   async function requestRide() {
@@ -386,7 +411,12 @@ export default function HomePage() {
       p_estimated_fare_htg: freshQuote.fare_htg,
     })
     if (error) { setRideError(error.message); setRequestState('idle'); return }
-    setRideId(String(data)); setRequestState('searching')
+    setRideId(String(data)); setRequestState('searching'); refreshRide()
+    } catch {
+      setRideError(lang === 'ht' ? 'Demann lan pa konfime. Verifye koneksyon an.' : 'Demande non confirmée. Vérifiez votre connexion.')
+      refreshRide()
+      setRequestState('idle')
+    } finally { requestBusy.current = false }
   }
 
   if (!user) return <main className="auth-shell"><section className="auth-card">
@@ -420,6 +450,11 @@ export default function HomePage() {
         <div className="topbar"><button className="round-button" onClick={() => setMenuOpen(true)}>☰</button><div className="brand-chip"><span className="brand-mark">M</span><div><strong>MOVI</strong><small>{t.tagline}</small></div></div><button className="round-button" onClick={() => openPanel('profile')}>👤</button></div>
       </div>
       <section className="booking-sheet"><div className="grabber" />
+        {rideSyncError && <p role="alert">{lang === 'ht' ? 'Estati kous la pa ajou. N ap eseye ankò.' : 'Actualisation du trajet indisponible. Nouvelle tentative en cours.'}<button type="button" onClick={refreshRide}>{lang === 'ht' ? 'Eseye ankò' : 'Réessayer'}</button></p>}
+        {rideLoading && <p role="status">{t.wait}</p>}
+        {currentRide?.status === 'requested' && <PassengerPendingRideCancel lang={lang} />}
+        {currentRide && currentRide.status !== 'requested' && <PassengerRideStatusFlow key={currentRide.id} ride={currentRide} ht={lang === 'ht'} onDismiss={newRide} />}
+        {!currentRide && !rideLoading && <>
         <div className="greeting-row"><div><p className="eyebrow">{t.hello} {user.user_metadata?.full_name?.split(' ')[0] ?? ''} 👋</p><h1>{t.where}</h1></div><span className="online-pill">{t.drivers}</span></div>
         <div className="route-card">
           <div className="route-line"><span className="pickup-dot" /><div className="input-wrap"><label>{t.pickup}</label><input value={pickupStatus === 'outside' ? (lang === 'ht' ? 'GPS deyò Ayiti' : 'GPS hors d’Haïti') : pickup} readOnly /></div></div>
@@ -448,9 +483,9 @@ export default function HomePage() {
         <div className="ride-list">{rideOptions.map((option) => <button key={option.id} className={`ride-option ${selectedRide === option.id ? 'selected' : ''}`} onClick={() => setSelectedRide(option.id)}><span className="ride-icon">{option.id === 'moto' ? '🏍️' : option.id === 'comfort' ? '🚙' : '🚕'}</span><span className="ride-copy"><strong>{option.name}</strong><small>{lang === 'fr' ? option.detailFr : option.detailHt} · {option.eta}</small></span><strong className="ride-price">{selectedRide === option.id && effectiveQuote ? `${effectiveQuote.fare_htg.toLocaleString('fr-FR')} HTG` : '—'}</strong></button>)}</div>
         <div className="payment-row"><div><span className="payment-icon">📱</span><div><small>{t.payment}</small><strong>{paymentMethod === 'natcash' ? 'NatCash' : 'MonCash'}</strong></div></div><button onClick={() => openPanel('payment')}>{t.change}</button></div>
         {rideError && <div className="ride-error">{rideError}</div>}
-        {requestState === 'searching' ? <div className="searching-card"><div className="spinner" /><div><strong>{t.searchingDriver}</strong><small>{ride.name} · {t.trip} #{rideId?.slice(0, 8)}</small></div></div> : <button className="request-button" disabled={!effectiveQuote || requestState === 'requesting'} onClick={requestRide}><span>{requestState === 'requesting' ? t.sending : effectiveQuote ? `${t.request} ${ride.name}` : t.calculating}</span><strong>{effectiveQuote ? `${effectiveQuote.fare_htg.toLocaleString('fr-FR')} HTG` : '—'}</strong></button>}
+        {requestState === 'searching' ? <div className="searching-card"><div className="spinner" /><div><strong>{t.searchingDriver}</strong><small>{ride.name} · {t.trip} #{rideId?.slice(0, 8)}</small></div></div> : <button className="request-button" disabled={!effectiveQuote || rideSyncError || requestState === 'requesting'} onClick={requestRide}><span>{requestState === 'requesting' ? t.sending : effectiveQuote ? `${t.request} ${ride.name}` : t.calculating}</span><strong>{effectiveQuote ? `${effectiveQuote.fare_htg.toLocaleString('fr-FR')} HTG` : '—'}</strong></button>}
         <p className="fine-print">{t.mapNote}</p>
-      </section>
+      </>}</section>
     </div>
     {destinationPickerOpen && <DestinationPickerMap pickup={pickupCoords} initialDestination={effectiveDestinationCoords} initialQuery={destination} lang={lang} onCancel={() => setDestinationPickerOpen(false)} onConfirm={(point, label) => { setDestination(label); setDestinationCoords(point); setResolvedDestinationCoords(point); setSelectedStreetPoint(false); setRouteGeometry(null); setRouteApproximate(false); setQuote(null); setSearchResults([]); setDestinationPickerOpen(false) }} />}
     {menuOpen && <><button className="drawer-backdrop" aria-label="Close menu" onClick={() => setMenuOpen(false)} /><aside className="nav-drawer">
@@ -459,9 +494,8 @@ export default function HomePage() {
       <nav className="drawer-nav">
         <button className="active" onClick={() => openPanel('home')}><span>🏠</span>{t.home}<b>›</b></button>
         <button onClick={() => openPanel('rides')}><span>🧾</span>{t.myRides}<b>›</b></button>
-        <button onClick={() => openPanel('payment')}><span>💳</span>{t.payment}<b>›</b></button>
         <button onClick={() => openPanel('profile')}><span>👤</span>{t.profile}<b>›</b></button>
-        <button onClick={() => openPanel('driver')}><span>🚘</span>{t.becomeDriver}<b>›</b></button>
+        <button onClick={() => openPanel('payment')}><span>💳</span>{t.payment}<b>›</b></button>
         <div className="drawer-language"><span>🌐</span><div><small>{t.language}</small><LanguageMenu lang={lang} onChange={changeLanguage} /></div></div>
         <button onClick={() => openPanel('help')}><span>❓</span>{t.help}<b>›</b></button>
       </nav>

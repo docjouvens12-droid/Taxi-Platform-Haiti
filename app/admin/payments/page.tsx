@@ -27,10 +27,10 @@ type PaymentRow = {
 
 const copy = {
   fr: {
-    title: 'Paiements & commissions', subtitle: 'Vue financière de Taxi Platform Haiti', back: 'Tableau de bord', loading: 'Chargement des paiements…', denied: 'Accès réservé aux administrateurs.', all: 'Tous', pending: 'En attente', authorized: 'Autorisé', paid: 'Payé', failed: 'Échoué', refunded: 'Remboursé', gross: 'Montant brut', fee: 'Commission plateforme', driverNet: 'Net chauffeur', transactions: 'Transactions', method: 'Méthode', status: 'Statut', passenger: 'Passager', driver: 'Chauffeur', route: 'Trajet', created: 'Créé', noRows: 'Aucun paiement ne correspond à votre recherche.', todayFee: "Commission aujourd’hui", totalFee: 'Commission totale', pendingAmount: 'Montant à traiter', live: 'Temps réel', search: 'Rechercher un passager, chauffeur, trajet ou moyen de paiement…', refresh: 'Actualiser', finance: 'Résumé financier', transactionList: 'Dernières transactions', paidAmount: 'Montant payé', mobileMoney: 'Mobile money', cash: 'Espèces'
+    title: 'Paiements & commissions', subtitle: 'Vue financière de MOVI', back: 'Tableau de bord', loading: 'Chargement des paiements…', denied: 'Accès réservé aux administrateurs.', all: 'Tous', pending: 'En attente', authorized: 'Autorisé', paid: 'Payé', failed: 'Échoué', refunded: 'Remboursé', gross: 'Montant brut', fee: 'Commission plateforme', driverNet: 'Net chauffeur', transactions: 'Transactions', method: 'Méthode', status: 'Statut', passenger: 'Passager', driver: 'Chauffeur', route: 'Trajet', created: 'Créé', noRows: 'Aucun paiement ne correspond à votre recherche.', todayFee: "Commission aujourd’hui", totalFee: 'Commission totale', pendingAmount: 'Montant à traiter', live: 'Temps réel', search: 'Rechercher un passager, chauffeur, trajet ou moyen de paiement…', refresh: 'Actualiser', finance: 'Résumé financier', transactionList: 'Dernières transactions', paidAmount: 'Montant payé', mobileMoney: 'Mobile money', cash: 'Espèces'
   },
   ht: {
-    title: 'Peman & komisyon', subtitle: 'Apèsi finansye Taxi Platform Haiti', back: 'Dashboard', loading: 'N ap chaje peman yo…', denied: 'Se administratè sèlman ki gen aksè.', all: 'Tout', pending: 'Ap tann', authorized: 'Otorize', paid: 'Peye', failed: 'Echwe', refunded: 'Ranbouse', gross: 'Montan brit', fee: 'Komisyon platfòm', driverNet: 'Net chofè', transactions: 'Tranzaksyon', method: 'Metòd', status: 'Estati', passenger: 'Kliyan', driver: 'Chofè', route: 'Trajè', created: 'Kreye', noRows: 'Pa gen peman ki koresponn ak rechèch ou a.', todayFee: 'Komisyon jodi a', totalFee: 'Komisyon total', pendingAmount: 'Montan pou trete', live: 'An tan reyèl', search: 'Chèche kliyan, chofè, trajè oswa metòd peman…', refresh: 'Rafrechi', finance: 'Rezime finansye', transactionList: 'Dènye tranzaksyon yo', paidAmount: 'Montan ki peye', mobileMoney: 'Mobile money', cash: 'Lajan kach'
+    title: 'Peman & komisyon', subtitle: 'Apèsi finansye MOVI', back: 'Dashboard', loading: 'N ap chaje peman yo…', denied: 'Se administratè sèlman ki gen aksè.', all: 'Tout', pending: 'Ap tann', authorized: 'Otorize', paid: 'Peye', failed: 'Echwe', refunded: 'Ranbouse', gross: 'Montan brit', fee: 'Komisyon platfòm', driverNet: 'Net chofè', transactions: 'Tranzaksyon', method: 'Metòd', status: 'Estati', passenger: 'Kliyan', driver: 'Chofè', route: 'Trajè', created: 'Kreye', noRows: 'Pa gen peman ki koresponn ak rechèch ou a.', todayFee: 'Komisyon jodi a', totalFee: 'Komisyon total', pendingAmount: 'Montan pou trete', live: 'An tan reyèl', search: 'Chèche kliyan, chofè, trajè oswa metòd peman…', refresh: 'Rafrechi', finance: 'Rezime finansye', transactionList: 'Dènye tranzaksyon yo', paidAmount: 'Montan ki peye', mobileMoney: 'Mobile money', cash: 'Lajan kach'
   }
 }
 
@@ -144,8 +144,8 @@ export default function AdminPaymentsPage() {
     </div>
 
     <div className="hero">
-      <div className="brandmark">T</div>
-      <div><span className="eyebrow">Taxi Platform Haiti · Admin</span><h1>{t.title}</h1><p>{t.subtitle}</p></div>
+      <div className="brandmark">M</div>
+      <div><span className="eyebrow">MOVI · Admin</span><h1>{t.title}</h1><p>{t.subtitle}</p></div>
     </div>
 
     <section className="finance-section">

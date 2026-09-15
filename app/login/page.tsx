@@ -91,7 +91,7 @@ export default function UnifiedLoginPage() {
       <HomePage />
       {passengerTransition && <div style={{position:'fixed',inset:0,zIndex:2147483647,display:'grid',placeItems:'center',background:'linear-gradient(160deg,#e3f1ed,#eef2f7 48%,#e7edf3)',fontFamily:'system-ui,sans-serif'}}>
         <div style={{display:'grid',gap:12,justifyItems:'center',color:'#0f6f59',fontWeight:900}}>
-          <div style={{width:48,height:48,borderRadius:16,display:'grid',placeItems:'center',background:'#0f6f59',color:'#fff',fontSize:22}}>T</div>
+          <div style={{width:48,height:48,borderRadius:16,display:'grid',placeItems:'center',background:'#0f6f59',color:'#fff',fontSize:22}}>M</div>
           <span>Ou konekte. N ap louvri espas kliyan an…</span>
         </div>
       </div>}
@@ -102,7 +102,7 @@ export default function UnifiedLoginPage() {
     <main style={{position:'fixed',inset:0,zIndex:2147483647,background:'linear-gradient(160deg,#e3f1ed,#eef2f7 48%,#e7edf3)',padding:'28px 20px',overflow:'auto',fontFamily:'system-ui,sans-serif',pointerEvents:'auto',touchAction:'auto'}}>
       <section style={{maxWidth:430,margin:'56px auto',background:'#fff',borderRadius:28,padding:'28px 24px',boxShadow:'0 24px 70px rgba(18,36,61,.15)',position:'relative',zIndex:2147483647}}>
         <div style={{display:'flex',alignItems:'center',marginBottom:28}}>
-          <div style={{width:52,height:52,borderRadius:16,display:'grid',placeItems:'center',background:'#0f6f59',color:'#fff',fontSize:24,fontWeight:900}}>T</div>
+          <div style={{width:52,height:52,borderRadius:16,display:'grid',placeItems:'center',background:'#0f6f59',color:'#fff',fontSize:24,fontWeight:900}}>M</div>
         </div>
         <div style={{fontSize:13,fontWeight:900,letterSpacing:1.5,color:'#0f7a62',marginBottom:6}}>BON RETOUR</div>
         <h1 style={{fontSize:36,lineHeight:1.05,margin:'0 0 24px',color:'#102033'}}>Connectez-vous</h1>

@@ -227,7 +227,7 @@ export default function AdminSafetyCasesPage() {
 
   return <main className="page"><section className="card">
     <div className="top"><button onClick={() => location.href='/admin/safety'}>‹ {t.back}</button><select value={lang} onChange={e => { const v=e.target.value as Lang; setLang(v); localStorage.setItem('taxi-language',v) }}><option value="fr">Français</option><option value="ht">Kreyòl</option></select></div>
-    <div className="brand"><span>T</span><div><strong>Taxi Platform Haiti</strong><small>{t.subtitle}</small></div></div>
+    <div className="brand"><span>M</span><div><strong>MOVI</strong><small>{t.subtitle}</small></div></div>
     <h1>{t.title}</h1>
     <div className="stats"><div><b>{openCount}</b><span>{t.open}</span></div><div className={overdueCount ? 'dangerStat' : ''}><b>{overdueCount}</b><span>{t.overdue}</span></div><div><b>{resolvedCount}</b><span>{t.resolved}</span></div></div>
     {message && <div className="message">{message}</div>}

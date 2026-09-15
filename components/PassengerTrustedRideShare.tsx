@@ -71,8 +71,8 @@ export default function PassengerTrustedRideShare() {
       const pickup = ride.pickup_address || (ht ? 'Pa disponib' : 'Indisponible')
       const destination = ride.destination_address || (ht ? 'Pa disponib' : 'Indisponible')
       const text = ht
-        ? `M ap pataje trajè Taxi Platform Haiti mwen an.\nChofè: ${ride.driver_name || '—'}\nMachin: ${vehicle} (${ride.vehicle_color || '—'})\nPlak: ${ride.plate_number || '—'}\nSoti: ${pickup}\nAle: ${destination}\nEstati: ${status}${ride.estimated_duration_min ? `\nTan estime: ${ride.estimated_duration_min} min` : ''}`
-        : `Je partage mon trajet Taxi Platform Haiti.\nChauffeur : ${ride.driver_name || '—'}\nVéhicule : ${vehicle} (${ride.vehicle_color || '—'})\nPlaque : ${ride.plate_number || '—'}\nDépart : ${pickup}\nDestination : ${destination}\nStatut : ${status}${ride.estimated_duration_min ? `\nDurée estimée : ${ride.estimated_duration_min} min` : ''}`
+        ? `M ap pataje trajè MOVI mwen an.\nChofè: ${ride.driver_name || '—'}\nMachin: ${vehicle} (${ride.vehicle_color || '—'})\nPlak: ${ride.plate_number || '—'}\nSoti: ${pickup}\nAle: ${destination}\nEstati: ${status}${ride.estimated_duration_min ? `\nTan estime: ${ride.estimated_duration_min} min` : ''}`
+        : `Je partage mon trajet MOVI.\nChauffeur : ${ride.driver_name || '—'}\nVéhicule : ${vehicle} (${ride.vehicle_color || '—'})\nPlaque : ${ride.plate_number || '—'}\nDépart : ${pickup}\nDestination : ${destination}\nStatut : ${status}${ride.estimated_duration_min ? `\nDurée estimée : ${ride.estimated_duration_min} min` : ''}`
 
       const wrap = document.createElement('div')
       wrap.className = 'trusted-ride-share'
