@@ -217,12 +217,12 @@ export default function PassengerActiveDriver() {
     const pickup = bundle?.pickup_address?.trim() || (lang === 'ht' ? 'Pwen depa a pa disponib' : 'Point de départ indisponible')
     const destination = bundle?.destination_address?.trim() || (lang === 'ht' ? 'Destinasyon an pa disponib' : 'Destination indisponible')
     const text = lang === 'ht'
-      ? `M ap pataje trajè Taxi Platform Haiti mwen an.\nChofè: ${name}\nMachin: ${vehicle} (${color})\nPlak: ${plate}\nSoti: ${pickup}\nAle: ${destination}\nEstati: ${statusLabel}\nETA: ${eta}`
-      : `Je partage mon trajet Taxi Platform Haiti.\nChauffeur : ${name}\nVéhicule : ${vehicle} (${color})\nPlaque : ${plate}\nDépart : ${pickup}\nDestination : ${destination}\nStatut : ${statusLabel}\nETA : ${eta}`
+      ? `M ap pataje trajè MOVI mwen an.\nChofè: ${name}\nMachin: ${vehicle} (${color})\nPlak: ${plate}\nSoti: ${pickup}\nAle: ${destination}\nEstati: ${statusLabel}\nETA: ${eta}`
+      : `Je partage mon trajet MOVI.\nChauffeur : ${name}\nVéhicule : ${vehicle} (${color})\nPlaque : ${plate}\nDépart : ${pickup}\nDestination : ${destination}\nStatut : ${statusLabel}\nETA : ${eta}`
 
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'Taxi Platform Haiti', text })
+        await navigator.share({ title: 'MOVI', text })
         setShareNote(lang === 'ht' ? 'Trajè a pare pou pataje.' : 'Trajet prêt à être partagé.')
       } else if (navigator.clipboard) {
         await navigator.clipboard.writeText(text)
@@ -247,7 +247,7 @@ export default function PassengerActiveDriver() {
       <div className="avatar">{bundle.avatar_url ? <img src={bundle.avatar_url} alt="" /> : <span>{initial}</span>}</div>
       <div className="driverCopy">
         <div className="nameLine"><h3>{name}</h3>{rating > 0 && <span className="rating">★ {rating.toFixed(1)}</span>}</div>
-        <p>{rides > 0 ? `${rides} ${lang === 'ht' ? 'trajè' : 'trajets'}` : (lang === 'ht' ? 'Chofè Taxi Platform Haiti' : 'Chauffeur Taxi Platform Haiti')}</p>
+        <p>{rides > 0 ? `${rides} ${lang === 'ht' ? 'trajè' : 'trajets'}` : (lang === 'ht' ? 'Chofè MOVI' : 'Chauffeur MOVI')}</p>
       </div>
       <a className="helpButton" href={helpHref} aria-label={lang === 'ht' ? 'Èd' : 'Aide'}>?</a>
     </div>

@@ -13,7 +13,7 @@
   overflow-x:hidden;
 }
 .auth-shell:before{
-  content:'Taxi Haiti';
+  content:'MOVI';
   position:fixed;
   top:9.5%;
   right:-12px;
@@ -94,7 +94,7 @@
   font-size:0;
   box-shadow:0 14px 30px rgba(0,0,0,.16);
 }
-.auth-brand .brand-mark:after{content:'T';font-size:24px;font-weight:950}
+.auth-brand .brand-mark:after{content:'M';font-size:24px;font-weight:950}
 .auth-brand strong{
   color:#fff;
   font-size:22px;

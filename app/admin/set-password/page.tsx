@@ -66,7 +66,7 @@ export default function AdminSetPasswordPage() {
 
   return <main className="page">
     <section className="card">
-      <div className="brand">🚕 <strong>Taxi Platform Haiti</strong></div>
+      <div className="brand">🚕 <strong>MOVI</strong></div>
       <div className="badge">🛡️ {lang === 'ht' ? 'Premye koneksyon admin' : 'Première connexion administrateur'}</div>
       <h1>{lang === 'ht' ? 'Kreye nouvo modpas ou' : 'Créez votre nouveau mot de passe'}</h1>
       <p>{lang === 'ht' ? 'Pou sekirite, ou dwe chwazi yon modpas pèsonèl anvan ou ka antre nan dashboard administrasyon an.' : 'Pour votre sécurité, choisissez un mot de passe personnel avant d’accéder au tableau de bord administrateur.'}</p>

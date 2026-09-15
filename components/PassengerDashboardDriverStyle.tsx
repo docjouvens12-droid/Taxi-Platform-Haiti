@@ -95,7 +95,7 @@ export default function PassengerDashboardDriverStyle() {
         white-space:nowrap!important;
       }
       .brand-chip strong{font-size:0!important}
-      .brand-chip strong::after{content:'Taxi Haiti';font-size:15px!important}
+      .brand-chip strong::after{content:'MOVI';font-size:15px!important}
       .brand-chip small{display:none!important}
 
       .booking-sheet{

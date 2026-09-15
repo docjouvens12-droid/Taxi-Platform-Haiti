@@ -116,7 +116,7 @@ export default function DriverApplicationPage() {
 
   return <main className="driver-page"><section className="driver-card">
     <div className="driver-top"><button onClick={() => history.back()}>‹ {t.back}</button><div className="driver-actions"><select value={lang} onChange={(e) => { const next = e.target.value as Lang; setLang(next); localStorage.setItem('taxi-language', next) }}><option value="fr">Français</option><option value="ht">Kreyòl</option></select><button className="logout" onClick={() => void logout()}>↪ {t.logout}</button></div></div>
-    <div className="driver-brand"><span>T</span><div><strong>Taxi Platform Haiti</strong><small>{t.subtitle}</small></div></div>
+    <div className="driver-brand"><span>M</span><div><strong>MOVI</strong><small>{t.subtitle}</small></div></div>
     <h1>{t.title}</h1>{statusText && <div className={`driver-status ${status}`}>{statusText}</div>}
     <form onSubmit={submit} className="driver-form">
       <label>{t.license}<input required disabled={locked} value={form.license} onChange={(e) => setForm({ ...form, license: e.target.value })} /></label>

@@ -1,4 +1,4 @@
-/* Admin-only mobile header spacing: keeps Taxi Haiti branding from covering the admin title/content. */
+/* Admin-only mobile header spacing: keeps MOVI branding from covering the admin title/content. */
 .adminShell .topbar{position:relative!important;z-index:2!important;min-width:0!important;overflow:visible!important}
 .adminShell .topbar .brand{min-width:0!important;flex:1 1 auto!important}
 .adminShell .topbar .brand>div{min-width:0!important}

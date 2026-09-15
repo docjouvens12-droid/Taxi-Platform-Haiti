@@ -222,7 +222,7 @@ export default function AdminSafetyPage() {
 
   return <main className="page"><section className="card">
     <div className="topbar"><button className="back" onClick={() => location.href = '/admin'}>‹ {t.back}</button><div className="topActions"><span className="liveBadge">● {t.live}</span><select value={lang} onChange={(e) => changeLang(e.target.value as Lang)}><option value="fr">Français</option><option value="ht">Kreyòl</option></select><button className="logout" onClick={() => void logout()}>{t.logout}</button></div></div>
-    <div className="brand"><span>T</span><div><strong>Taxi Platform Haiti</strong><small>Admin Safety Center</small></div></div>
+    <div className="brand"><span>M</span><div><strong>MOVI</strong><small>Admin Safety Center</small></div></div>
     <div className="titleRow"><div><h1>{t.title}</h1><p>{t.subtitle}</p></div><button className="refresh" onClick={() => void loadAlerts()} disabled={busy}>↻</button></div>
 
     <div className="summary"><div className="open"><small>{t.open}</small><strong>{counts.open}</strong></div><div className="critical"><small>{t.critical}</small><strong>{counts.critical}</strong></div><div><small>{t.resolved}</small><strong>{counts.resolved}</strong></div><div><small>{t.all}</small><strong>{counts.all}</strong></div></div>

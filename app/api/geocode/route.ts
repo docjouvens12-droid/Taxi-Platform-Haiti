@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 type Result = { id: string; label: string; center: [number, number]; featureType?: string }
 
 const SEARCH_TYPES = 'address,street,neighborhood,locality,place,district,region'
-const PRECISE_TYPES = new Set(['address', 'street', 'neighborhood'])
+const PRECISE_TYPES = new Set(['address', 'street'])
 
 const KNOWN_CITY_FALLBACKS: Array<{ keys: string[]; label: string; center: [number, number] }> = [
   { keys: ['les gonaives', 'gonaives', 'gonayiv'], label: 'Les Gonaïves, Artibonite, Haïti', center: [-72.6843, 19.4475] },
@@ -66,24 +66,6 @@ function buildAddressVariants(query: string) {
     }
   }
   return Array.from(variants)
-}
-
-function contextFromLabel(label: string) {
-  const parts = label.split(',').map(part => part.trim()).filter(Boolean)
-  if (parts.length >= 3) return parts.slice(-3).join(', ')
-  return label.trim()
-}
-
-function knownCityFallback(query: string): Result | null {
-  const normalizedQuery = normalize(query)
-  const match = KNOWN_CITY_FALLBACKS.find(city => city.keys.some(key => normalizedQuery.includes(normalize(key))))
-  if (!match) return null
-  return {
-    id: `fallback-${normalize(match.label).replace(/\s+/g, '-')}`,
-    label: match.label,
-    center: match.center,
-    featureType: 'place',
-  }
 }
 
 function exactKnownCity(query: string): Result | null {
@@ -190,15 +172,15 @@ export async function GET(request: NextRequest) {
   try {
     const batches: Result[][] = []
     const variants = buildAddressVariants(q)
-    for (const variant of variants) batches.push(await searchMapboxV6(variant, true))
+    batches.push(...await Promise.all(variants.map(variant => searchMapboxV6(variant, true))))
 
     let hasPrecise = batches.some(batch => batch.some(result => PRECISE_TYPES.has(result.featureType || '')))
     if (!hasPrecise && addressLike) {
-      for (const variant of variants) batches.push(await searchMapboxSearchBox(variant))
+      batches.push(...await Promise.all(variants.map(variant => searchMapboxSearchBox(variant))))
       hasPrecise = batches.some(batch => batch.some(result => PRECISE_TYPES.has(result.featureType || '')))
     }
     if (!hasPrecise && addressLike) {
-      for (const variant of variants) batches.push(await searchOpenStreetMap(variant))
+      batches.push(await searchOpenStreetMap(q))
       hasPrecise = batches.some(batch => batch.some(result => PRECISE_TYPES.has(result.featureType || '')))
     }
     if (!batches.some(batch => batch.length)) batches.push(await searchMapboxV6(q, false))
@@ -232,8 +214,7 @@ export async function GET(request: NextRequest) {
       const precise = results.filter(result => PRECISE_TYPES.has(result.featureType || ''))
       if (precise.length) results = precise
       else {
-        const fallback = knownCityFallback(q)
-        results = fallback ? [fallback] : []
+        results = []
       }
     } else {
       const relevant = results.filter(result => {
@@ -256,12 +237,9 @@ export async function GET(request: NextRequest) {
       return distance(a) - distance(b)
     })
 
-    const displayResults = results.slice(0, addressLike ? 8 : 6).map(result => ({
-      ...result,
-      label: addressLike ? `${contextFromLabel(result.label)}\n${q}` : result.label,
-    }))
+    const displayResults = results.slice(0, addressLike ? 8 : 6)
 
-    return NextResponse.json({ results: displayResults, query: q, precise: addressLike, fallback: addressLike && results.some(result => result.id.startsWith('fallback-')) })
+    return NextResponse.json({ results: displayResults, query: q, precise: addressLike && displayResults.length > 0, fallback: false })
   } catch {
     return NextResponse.json({ results: [], error: 'GEOCODE_FAILED' }, { status: 502 })
   }

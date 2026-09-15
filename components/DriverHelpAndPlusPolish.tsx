@@ -57,14 +57,14 @@ export default function DriverHelpAndPlusPolish() {
             ['Trajè ak demann', 'Rete sou En ligne pou resevwa demann. Verifye pwen depa ak destinasyon an anvan ou kòmanse trajè a.'],
             ['Peman', 'Sèvi ak MonCash oswa NatCash ou anrejistre a. Se yon sèl metòd payout ki ka aktif a la fwa.'],
             ['Kont ak veyikil', 'Nan Profil ak Veyikil, ou ka anrejistre epi modifye enfòmasyon ou yo ak dokiman yo.'],
-            ['Pwoblèm teknik', 'Peze Actualiser epi relouvri aplikasyon an si yon demann oswa done pa mete ajou. Si pwoblèm nan kontinye, kontakte administrasyon Taxi Platform Haiti.'],
+            ['Pwoblèm teknik', 'Peze Actualiser epi relouvri aplikasyon an si yon demann oswa done pa mete ajou. Si pwoblèm nan kontinye, kontakte administrasyon MOVI.'],
             ['Sekirite', 'Pa kòmanse yon trajè si enfòmasyon yo pa koresponn oswa si sitiyasyon an pa sanble an sekirite.'],
           ]
         : [
             ['Trajets et demandes', 'Restez En ligne pour recevoir des demandes. Vérifiez le point de départ et la destination avant de commencer le trajet.'],
             ['Paiement', 'Utilisez le compte MonCash ou NatCash enregistré. Un seul mode de versement peut être actif à la fois.'],
             ['Compte et véhicule', 'Dans Profil et Véhicule, vous pouvez enregistrer puis modifier vos informations et documents.'],
-            ['Problème technique', 'Appuyez sur Actualiser et rouvrez l’application si une demande ou une donnée ne se met pas à jour. Si le problème continue, contactez l’administration de Taxi Platform Haiti.'],
+            ['Problème technique', 'Appuyez sur Actualiser et rouvrez l’application si une demande ou une donnée ne se met pas à jour. Si le problème continue, contactez l’administration de MOVI.'],
             ['Sécurité', 'Ne commencez pas un trajet si les informations ne correspondent pas ou si la situation ne semble pas sûre.'],
           ]
 

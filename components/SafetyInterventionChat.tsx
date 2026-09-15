@@ -58,7 +58,7 @@ export default function SafetyInterventionChat(){
   const unread=useMemo(()=>messages.filter(m=>m.recipient_id===userId).length,[messages,userId])
   if(!eligible||!userId||!eventId||messages.length===0)return null
   const title=lang==='ht'?'Mesaj Sekirite':'Messages de sécurité'
-  const subtitle=lang==='ht'?'Admin sekirite Taxi Platform Haiti':'Administration sécurité Taxi Platform Haiti'
+  const subtitle=lang==='ht'?'Admin sekirite MOVI':'Administration sécurité MOVI'
   const placeholder=lang==='ht'?'Ekri repons ou…':'Écrire votre réponse…'
   const sendLabel=lang==='ht'?'Voye':'Envoyer'
   const accent=isDriver?'#11966f':'#1b70eb'

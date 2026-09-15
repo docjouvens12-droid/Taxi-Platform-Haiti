@@ -60,7 +60,7 @@ export default function PassengerTripExperiencePolish() {
       if (!card) return
       const replacements: Array<[string,string]> = [
         ['TRAJET TERMINÉ','TRAJÈ FINI'],
-        ['Merci d’avoir voyagé avec Taxi Platform Haiti','Mèsi paske ou te vwayaje ak Taxi Platform Haiti'],
+        ['Merci d’avoir voyagé avec MOVI','Mèsi paske ou te vwayaje ak MOVI'],
         ['Prise en charge','Kote yo te pran ou'],
         ['Montant final','Montan final'],
         ['Paiement','Peman'],

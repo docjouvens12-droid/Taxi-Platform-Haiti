@@ -29,6 +29,7 @@ import PasswordVisibilityToggle from '../components/PasswordVisibilityToggle'
 import PwaRegister from '../components/PwaRegister'
 import HaitiTestGeolocation from '../components/HaitiTestGeolocation'
 import RouteScopedEnhancers from '../components/RouteScopedEnhancers'
+import PassengerRideProvider from '../components/PassengerRideProvider'
 
 export const metadata: Metadata = {
   title: 'MOVI',
@@ -67,8 +68,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <AuthRoleRedirector />
         <AdminPermissionGuard />
         <PasswordVisibilityToggle />
-        <RouteScopedEnhancers />
-        {children}
+        <PassengerRideProvider>
+          <RouteScopedEnhancers />
+          {children}
+        </PassengerRideProvider>
       </body>
     </html>
   )

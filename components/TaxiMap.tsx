@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { usePassengerRide } from './PassengerRideProvider'
 
 type Point = { lat: number; lng: number }
 type RouteGeometry = { type: 'LineString'; coordinates: number[][] }
@@ -63,7 +64,10 @@ function encodePolyline(coordinates: number[][]) {
 
 export default function TaxiMap({ pickup, destination, routeGeometry }: Props) {
   const requestRef = useRef(0)
-  const [tracking, setTracking] = useState<LiveTracking | null>(null)
+  const { ride } = usePassengerRide()
+  const [rawTracking, setTracking] = useState<LiveTracking | null>(null)
+  const trackable = !!ride && ['accepted', 'driver_arriving', 'in_progress'].includes(ride.status)
+  const tracking = useMemo(() => trackable && rawTracking?.ride_id === ride?.id ? { ...rawTracking, ride_status: ride.status as LiveTracking['ride_status'] } : null, [trackable, rawTracking, ride?.id, ride?.status])
   const [driverDistanceKm, setDriverDistanceKm] = useState<number | null>(null)
   const [driverEtaMin, setDriverEtaMin] = useState<number | null>(null)
   const [driverRoutePolyline, setDriverRoutePolyline] = useState<string | null>(null)
@@ -82,12 +86,12 @@ export default function TaxiMap({ pickup, destination, routeGeometry }: Props) {
 
   useEffect(() => {
     let active = true
+    if (!trackable) { setTracking(null); return }
 
     async function loadTracking() {
       const { data, error } = await supabase.rpc('get_passenger_live_driver_tracking')
       if (!active) return
       if (error) {
-        setTracking(null)
         return
       }
       const row = (Array.isArray(data) ? data[0] : data) as LiveTracking | undefined
@@ -103,7 +107,7 @@ export default function TaxiMap({ pickup, destination, routeGeometry }: Props) {
       window.clearInterval(timer)
       authListener.subscription.unsubscribe()
     }
-  }, [])
+  }, [ride?.id, trackable])
 
   useEffect(() => {
     const lat = tracking?.driver_latitude

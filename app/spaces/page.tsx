@@ -7,7 +7,7 @@ type Lang = 'fr' | 'ht'
 const copy = {
   fr: {
     title: 'Choisissez votre espace',
-    subtitle: 'Taxi Platform Haiti',
+    subtitle: 'MOVI',
     description: 'Sélectionnez votre espace pour continuer.',
     passenger: 'Espace passager',
     passengerText: 'Commander un taxi et suivre vos trajets.',
@@ -18,7 +18,7 @@ const copy = {
   },
   ht: {
     title: 'Chwazi espas ou',
-    subtitle: 'Taxi Platform Haiti',
+    subtitle: 'MOVI',
     description: 'Chwazi espas ou pou kontinye.',
     passenger: 'Espas pasaje',
     passengerText: 'Mande taksi epi swiv trajè ou yo.',
@@ -45,7 +45,7 @@ export default function SpacesPage() {
 
   return <main className="page"><section className="card">
     <div className="topbar">
-      <div className="brand"><span>T</span><div><strong>{t.subtitle}</strong><small>{t.description}</small></div></div>
+      <div className="brand"><span>M</span><div><strong>{t.subtitle}</strong><small>{t.description}</small></div></div>
       <select value={lang} onChange={(e)=>changeLang(e.target.value as Lang)}><option value="fr">Français</option><option value="ht">Kreyòl</option></select>
     </div>
 

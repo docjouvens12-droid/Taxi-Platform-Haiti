@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
+import { usePassengerRide } from './PassengerRideProvider'
 import type { Map as MapboxMap, Marker as MapboxMarker } from 'mapbox-gl'
 
 type Tracking = {
@@ -21,7 +22,11 @@ type RouteMetrics = { distanceKm: number; minutes: number }
 type RouteResponse = { routes?: Array<{ distance:number; duration:number; geometry:{coordinates:[number,number][];type:'LineString'} }> }
 
 export default function PassengerAcceptedRideMiniMap() {
-  const [tracking, setTracking] = useState<Tracking | null>(null)
+  const { ride } = usePassengerRide()
+  const [rawTracking, setTracking] = useState<Tracking | null>(null)
+  const trackable = !!ride && ['accepted', 'driver_arriving', 'in_progress'].includes(ride.status)
+  const tracking = useMemo(() => trackable && rawTracking?.ride_id === ride?.id ? { ...rawTracking, ride_status: ride.status as Tracking['ride_status'] } : null, [trackable, rawTracking, ride?.id, ride?.status])
+  const mapVisible = !!tracking && tracking.ride_status !== 'driver_arriving'
   const [metrics, setMetrics] = useState<RouteMetrics | null>(null)
   const [ht, setHt] = useState(false)
   const [target, setTarget] = useState<HTMLElement | null>(null)
@@ -41,12 +46,13 @@ export default function PassengerAcceptedRideMiniMap() {
 
   useEffect(() => {
     let alive = true
+    if (!trackable) { setTracking(null); return }
     const syncLang = () => setHt(window.localStorage.getItem('taxi-language') === 'ht')
     syncLang()
     async function load() {
       const { data, error } = await supabase.rpc('get_passenger_live_driver_tracking')
       if (!alive) return
-      if (error) { setTracking(null); return }
+      if (error) return
       const row = (Array.isArray(data) ? data[0] : data) as Tracking | undefined
       setTracking(row ?? null)
     }
@@ -54,19 +60,22 @@ export default function PassengerAcceptedRideMiniMap() {
     const timer = window.setInterval(() => void load(), 1000)
     window.addEventListener('storage', syncLang)
     return () => { alive = false; window.clearInterval(timer); window.removeEventListener('storage', syncLang) }
-  }, [])
+  }, [ride?.id, trackable])
 
   useEffect(() => { lastTrackingRef.current = tracking }, [tracking])
 
   async function renderTracking(row: Tracking) {
     const map = mapRef.current
     if (!map || row.ride_status === 'driver_arriving') return
+    if (row.driver_latitude == null || row.driver_longitude == null) return
+    if (row.ride_status === 'in_progress' ? row.destination_latitude == null || row.destination_longitude == null : row.pickup_latitude == null || row.pickup_longitude == null) return
     const dLat = Number(row.driver_latitude), dLng = Number(row.driver_longitude)
     const targetLat = Number(row.ride_status === 'in_progress' ? row.destination_latitude : row.pickup_latitude)
     const targetLng = Number(row.ride_status === 'in_progress' ? row.destination_longitude : row.pickup_longitude)
     if (![dLat,dLng,targetLat,targetLng].every(Number.isFinite)) return
 
     const mod = await import('mapbox-gl')
+    if (mapRef.current !== map || lastTrackingRef.current?.ride_id !== row.ride_id || lastTrackingRef.current?.ride_status !== row.ride_status) return
     const driverPoint:[number,number] = [dLng,dLat]
     const endPoint:[number,number] = [targetLng,targetLat]
 
@@ -95,7 +104,7 @@ export default function PassengerAcceptedRideMiniMap() {
       const response = await fetch(url, { cache:'no-store' })
       if (!response.ok) return
       const route = ((await response.json()) as RouteResponse).routes?.[0]
-      if (!route) return
+      if (!route || mapRef.current !== map || lastTrackingRef.current?.ride_id !== row.ride_id || lastTrackingRef.current?.ride_status !== row.ride_status) return
       setMetrics({ distanceKm: route.distance/1000, minutes: Math.max(1, Math.ceil(route.duration/60)) })
       const geojson = { type:'Feature' as const, properties:{}, geometry:route.geometry }
       const source = map.getSource('passenger-live-route') as { setData?:(data:unknown)=>void } | undefined
@@ -114,7 +123,7 @@ export default function PassengerAcceptedRideMiniMap() {
   }
 
   useEffect(() => {
-    if (!target || !mapEl.current || mapRef.current) return
+    if (!mapVisible || !target || !mapEl.current || mapRef.current) return
     const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
     if (!token) return
     let cancelled = false
@@ -130,8 +139,8 @@ export default function PassengerAcceptedRideMiniMap() {
         if (row) void renderTracking(row)
       })
     })()
-    return ()=>{ cancelled=true; driverMarkerRef.current?.remove(); endMarkerRef.current?.remove(); mapRef.current?.remove(); mapRef.current=null }
-  },[target])
+    return ()=>{ cancelled=true; driverMarkerRef.current?.remove(); endMarkerRef.current?.remove(); driverMarkerRef.current=null; endMarkerRef.current=null; mapRef.current?.remove(); mapRef.current=null; lastRouteAt.current=0 }
+  },[target, mapVisible])
 
   useEffect(() => {
     if (!tracking || tracking.ride_status === 'driver_arriving') return

@@ -74,7 +74,7 @@ export default function AdminPayoutsPage(){
 
   return <main className="page"><section className="shell">
     <header className="top"><button onClick={()=>location.href='/admin'}>‹ {t.back}</button><select value={lang} onChange={e=>{const v=e.target.value as Lang;setLang(v);localStorage.setItem('taxi-language',v)}}><option value="fr">Français</option><option value="ht">Kreyòl</option></select></header>
-    <div className="brand"><span>₲</span><div><strong>Taxi Platform Haiti</strong><small>{t.subtitle}</small></div></div><h1>{t.title}</h1>
+    <div className="brand"><span>₲</span><div><strong>MOVI</strong><small>{t.subtitle}</small></div></div><h1>{t.title}</h1>
     <div className="warning">⚠️ {t.note}</div>
     <div className="stats"><div><small>{t.readyTotal}</small><strong>{money(pendingTotal)}</strong></div><div><small>{t.processingTotal}</small><strong>{money(processingTotal)}</strong></div><div><small>{t.paidTotal}</small><strong>{money(paidTotal)}</strong></div><div><small>{t.count}</small><strong>{rows.length}</strong></div></div>
     <div className="toolbar"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={t.search}/><select value={filter} onChange={e=>setFilter(e.target.value as any)}><option value="all">{t.all}</option><option value="pending">{t.pending}</option><option value="processing">{t.processing}</option><option value="paid">{t.paid}</option><option value="failed">{t.failed}</option></select><button onClick={()=>void loadRows()}>↻</button></div>

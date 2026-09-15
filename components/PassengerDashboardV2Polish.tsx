@@ -8,7 +8,7 @@ export default function PassengerDashboardV2Polish(){
 
     const apply=()=>{
       const brand=document.querySelector<HTMLElement>('.brand-chip strong')
-      if(brand) brand.textContent='Taxi Haiti'
+      if(brand) brand.textContent='MOVI'
       const mark=document.querySelector<HTMLElement>('.brand-chip .brand-mark')
       if(mark) mark.textContent='🚕'
 

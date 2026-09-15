@@ -1,0 +1,7 @@
+node_modules/
+.pnpm-store/
+.next/
+*.tsbuildinfo
+.env.local
+test-results/
+next-env.d.ts
