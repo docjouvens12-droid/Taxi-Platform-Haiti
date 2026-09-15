@@ -199,7 +199,10 @@ export async function GET(request: NextRequest) {
     if (addressLike) {
       const precise = results.filter(result => PRECISE_TYPES.has(result.featureType || ''))
       if (precise.length) results = precise
-      else results = []
+      else {
+        const fallback = knownCityFallback(q)
+        results = fallback ? [{ ...fallback, id: `typed-${normalize(q).replace(/\s+/g, '-')}`, label: q.trim(), featureType: 'locality' }] : []
+      }
     } else {
       const relevant = results.filter(result => {
         const label = normalize(result.label)
