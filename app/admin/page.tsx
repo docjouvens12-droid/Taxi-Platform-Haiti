@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import AdminRideOperations from '../../components/AdminRideOperations'
 
 type Lang = 'fr' | 'ht'
 type Stats = { users:number; pendingDrivers:number; approvedDrivers:number; totalRides:number; activeRides:number; openSafety:number; platformFees:number }
@@ -97,6 +98,7 @@ export default function AdminDashboardPage(){
       {allow('can_view_payments')&&<article className="money"><span>💰</span><small>{t.fees}</small><strong>{stats.platformFees.toLocaleString('fr-FR',{maximumFractionDigits:2})} HTG</strong></article>}
     </div>
     {allow('can_manage_safety')&&<div className={stats.openSafety>0?'alert danger':'alert'}><span>{stats.openSafety>0?'⚠️':'✓'}</span><div><small>{t.attention}</small><strong>{stats.openSafety>0?`${stats.openSafety} ${t.openSafety}`:t.allGood}</strong></div></div>}
+    <AdminRideOperations lang={lang} canViewSafety={allow('can_manage_safety')} />
     <div className="navGrid">{nav.map(item=><button key={item.href} onClick={()=>window.location.assign(item.href)} className="navCard"><span className="icon">{item.icon}</span><div><strong>{item.title}</strong><small>{item.desc}</small></div>{item.badge?<b>{item.badge}</b>:<span className="arrow">›</span>}</button>)}</div>
   </section>
   <style jsx>{`

@@ -1,4 +1,4 @@
-/* Passenger destination suggestions: context first, typed address second. */
+/* Passenger destination suggestions show the map provider's actual result. */
 .shell .search-results{
   position:relative!important;
   z-index:9999!important;
@@ -18,7 +18,7 @@
 .shell .search-results button *{
   pointer-events:none!important;
 }
-.shell .search-results button>strong{
+.shell .search-results button>span:nth-child(2) strong{
   display:block!important;
   white-space:pre-line!important;
   color:#173149!important;
@@ -26,8 +26,4 @@
   line-height:1.35!important;
   font-weight:900!important;
 }
-.shell .search-results button>strong::first-line{
-  color:#173149!important;
-  font-size:14px!important;
-  font-weight:900!important;
-}
+.shell .search-results button>span:nth-child(2) small{display:block;margin-top:3px;color:#687b79;font-size:11px;line-height:1.3}

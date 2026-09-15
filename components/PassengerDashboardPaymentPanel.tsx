@@ -3,10 +3,9 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-type Method = 'cash' | 'moncash' | 'natcash'
+type Method = 'moncash' | 'natcash'
 
 const METHODS: { id: Method; icon: string; fr: string; ht: string; subFr: string; subHt: string }[] = [
-  { id: 'cash', icon: '💵', fr: 'Espèces', ht: 'Lajan kach', subFr: 'Payer directement au chauffeur', subHt: 'Peye chofè a dirèkteman' },
   { id: 'moncash', icon: '📱', fr: 'MonCash', ht: 'MonCash', subFr: 'Paiement mobile', subHt: 'Peman mobil' },
   { id: 'natcash', icon: '📲', fr: 'NatCash', ht: 'NatCash', subFr: 'Paiement mobile', subHt: 'Peman mobil' },
 ]
@@ -15,14 +14,14 @@ export default function PassengerDashboardPaymentPanel() {
   const [target, setTarget] = useState<HTMLElement | null>(null)
   const [open, setOpen] = useState(false)
   const [ht, setHt] = useState(false)
-  const [method, setMethod] = useState<Method>('cash')
+  const [method, setMethod] = useState<Method>('moncash')
 
   const syncMainRow = (next: Method) => {
     const row = document.querySelector<HTMLElement>('.shell .payment-row')
     const strong = row?.querySelector<HTMLElement>('strong')
     const icon = row?.querySelector<HTMLElement>('.payment-icon')
-    if (strong) strong.textContent = next === 'cash' ? (localStorage.getItem('taxi-language') === 'ht' ? 'Lajan kach' : 'Espèces') : next === 'moncash' ? 'MonCash' : 'NatCash'
-    if (icon) icon.textContent = next === 'cash' ? '💵' : next === 'moncash' ? '📱' : '📲'
+    if (strong) strong.textContent = next === 'moncash' ? 'MonCash' : 'NatCash'
+    if (icon) icon.textContent = next === 'moncash' ? '📱' : '📲'
   }
 
   const closeSheet = () => {
@@ -36,10 +35,18 @@ export default function PassengerDashboardPaymentPanel() {
   }
 
   useEffect(() => {
-    const saved = localStorage.getItem('taxi-dashboard-payment-method') as Method | null
-    const initial: Method = saved === 'moncash' || saved === 'natcash' || saved === 'cash' ? saved : 'cash'
+    const saved = localStorage.getItem('taxi-payment-method') as Method | null
+    const initial: Method = saved === 'natcash' ? 'natcash' : 'moncash'
+    localStorage.setItem('taxi-payment-method', initial)
+    localStorage.setItem('taxi-dashboard-payment-method', initial)
     setMethod(initial)
     syncMainRow(initial)
+    const syncChoice = () => {
+      const next: Method = localStorage.getItem('taxi-payment-method') === 'natcash' ? 'natcash' : 'moncash'
+      setMethod(next)
+      syncMainRow(next)
+    }
+    window.addEventListener('taxi-payment-method-change', syncChoice)
 
     const onClick = (event: MouseEvent) => {
       const button = (event.target as HTMLElement | null)?.closest<HTMLButtonElement>('.shell .payment-row button')
@@ -56,7 +63,7 @@ export default function PassengerDashboardPaymentPanel() {
     }
 
     document.addEventListener('click', onClick, true)
-    return () => document.removeEventListener('click', onClick, true)
+    return () => { document.removeEventListener('click', onClick, true); window.removeEventListener('taxi-payment-method-change', syncChoice) }
   }, [])
 
   const choose = (next: Method) => {

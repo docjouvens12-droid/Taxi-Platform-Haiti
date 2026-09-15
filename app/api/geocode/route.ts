@@ -11,7 +11,7 @@ const KNOWN_CITY_FALLBACKS: Array<{ keys: string[]; label: string; center: [numb
   { keys: ['delmas'], label: 'Delmas, Ouest, Haïti', center: [-72.2962, 18.5447] },
   { keys: ['petion ville', 'petion-ville', 'petyonvil'], label: 'Pétion-Ville, Ouest, Haïti', center: [-72.2852, 18.5125] },
   { keys: ['cap haitien', 'cap-haitien', 'okap'], label: 'Cap-Haïtien, Nord, Haïti', center: [-72.1982, 19.7594] },
-  { keys: ['saint marc', 'saint-marc', 'senmak'], label: 'Saint-Marc, Artibonite, Haïti', center: [-72.7000, 19.1082] },
+  { keys: ['saint marc', 'saint-marc', 'saint marq', 'senmak'], label: 'Saint-Marc, Artibonite, Haïti', center: [-72.7000, 19.1082] },
   { keys: ['jacmel', 'jakmel'], label: 'Jacmel, Sud-Est, Haïti', center: [-72.5370, 18.2343] },
   { keys: ['les cayes', 'okay'], label: 'Les Cayes, Sud, Haïti', center: [-73.7500, 18.2000] },
 ]
@@ -54,7 +54,7 @@ function buildAddressVariants(query: string) {
   }
 
   const normalized = normalize(clean)
-  const knownCities = ['gonaives', 'les gonaives', 'port au prince', 'cap haitien', 'saint marc', 'jacmel', 'les cayes', 'petion ville', 'delmas']
+  const knownCities = ['gonaives', 'les gonaives', 'port au prince', 'cap haitien', 'saint marc', 'saint marq', 'jacmel', 'les cayes', 'petion ville', 'delmas']
   for (const city of knownCities) {
     const index = normalized.lastIndexOf(city)
     if (index > 0) {
@@ -98,8 +98,8 @@ export async function GET(request: NextRequest) {
   const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
   const { searchParams } = new URL(request.url)
   const q = (searchParams.get('q') || '').trim()
-  const lat = Number(searchParams.get('lat'))
-  const lng = Number(searchParams.get('lng'))
+  const lat = searchParams.has('lat') ? Number(searchParams.get('lat')) : NaN
+  const lng = searchParams.has('lng') ? Number(searchParams.get('lng')) : NaN
 
   if (!token) return NextResponse.json({ results: [], error: 'MAPBOX_TOKEN_MISSING' }, { status: 500 })
   if (q.length < 3) return NextResponse.json({ results: [] })
@@ -147,25 +147,6 @@ export async function GET(request: NextRequest) {
         const center = Array.isArray(geometryCenter) && geometryCenter.length >= 2 ? geometryCenter : propertyCenter
         if (!Array.isArray(center) || center.length < 2) return []
         return [{ id: f.id || props.mapbox_id || `searchbox-${center[0]},${center[1]}`, label: completeLabel(props, props.name || ''), center: [Number(center[0]), Number(center[1])] as [number, number], featureType: props.feature_type || f.feature_type || '' }]
-      })
-    } catch { return [] } finally { clearTimeout(timeout) }
-  }
-
-  async function searchOpenStreetMap(query: string): Promise<Result[]> {
-    const params = new URLSearchParams({ q: query, format: 'jsonv2', addressdetails: '1', limit: '8', countrycodes: 'ht', 'accept-language': 'fr' })
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 6000)
-    try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, { signal: controller.signal, cache: 'no-store', headers: { 'User-Agent': 'MOVI-Haiti/1.0 (address-search)' } })
-      if (!response.ok) return []
-      const rows = await response.json()
-      return (Array.isArray(rows) ? rows : []).flatMap((row: any) => {
-        const latValue = Number(row.lat)
-        const lngValue = Number(row.lon)
-        if (!Number.isFinite(latValue) || !Number.isFinite(lngValue)) return []
-        const type = String(row.type || row.addresstype || '')
-        const featureType = ['house', 'building'].includes(type) ? 'address' : type === 'road' ? 'street' : type === 'neighbourhood' ? 'neighborhood' : type
-        return [{ id: `osm-${row.place_id ?? `${lngValue},${latValue}`}`, label: String(row.display_name || query), center: [lngValue, latValue] as [number, number], featureType }]
       })
     } catch { return [] } finally { clearTimeout(timeout) }
   }
@@ -255,7 +236,7 @@ export async function GET(request: NextRequest) {
 
     const displayResults = results.slice(0, addressLike ? 8 : 6)
 
-    return NextResponse.json({ results: displayResults, query: q, precise: addressLike && displayResults.length > 0, fallback: false })
+    return NextResponse.json({ results: displayResults, query: q, precise: addressLike && results.some(result => result.featureType === 'address'), fallback: false })
   } catch {
     return NextResponse.json({ results: [], error: 'GEOCODE_FAILED' }, { status: 502 })
   }
