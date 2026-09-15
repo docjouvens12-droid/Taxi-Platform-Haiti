@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import PassengerLiveMap from './PassengerLiveMap'
 import { supabase } from '../lib/supabase'
 
 type Point = { lat: number; lng: number }
@@ -33,9 +34,14 @@ export default function TaxiMap({ pickup }: Props) {
   const [tracking, setTracking] = useState<LiveTracking | null>(null)
   const [driverDistanceKm, setDriverDistanceKm] = useState<number | null>(null)
   const [driverEtaMin, setDriverEtaMin] = useState<number | null>(null)
-  const [driverRoutePolyline, setDriverRoutePolyline] = useState<string | null>(null)
-  const [mapFailed, setMapFailed] = useState(false)
+  const [driverRoutePolyline, setDriverRoutePolyline] = useState<RouteGeometry | null>(null)
   const [lang, setLang] = useState<Lang>('fr')
+
+  useEffect(() => {
+    setDriverDistanceKm(null)
+    setDriverEtaMin(null)
+    setDriverRoutePolyline(null)
+  }, [tracking?.ride_id, tracking?.ride_status])
 
   useEffect(() => {
     const syncLanguage = () => {
@@ -92,7 +98,7 @@ export default function TaxiMap({ pickup }: Props) {
     ;(async () => {
       try {
         const coords = `${lng},${lat};${targetLng},${targetLat}`
-        const response = await fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?overview=full&geometries=polyline&steps=false&access_token=${encodeURIComponent(token)}`, { signal: controller.signal })
+        const response = await fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?overview=full&geometries=geojson&steps=false&access_token=${encodeURIComponent(token)}`, { signal: controller.signal })
         if (!response.ok) throw new Error('Directions unavailable')
         const json = await response.json()
         const route = json.routes?.[0]
@@ -113,30 +119,6 @@ export default function TaxiMap({ pickup }: Props) {
     return () => controller.abort()
   }, [tracking?.ride_id, tracking?.ride_status, tracking?.driver_latitude, tracking?.driver_longitude, tracking?.pickup_latitude, tracking?.pickup_longitude, tracking?.destination_latitude, tracking?.destination_longitude])
 
-  const mapUrl = useMemo(() => {
-    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-    if (!token) return ''
-
-    const driverLat = tracking?.driver_latitude
-    const driverLng = tracking?.driver_longitude
-    const targetLat = tracking?.ride_status === 'in_progress' ? tracking.destination_latitude : tracking?.pickup_latitude
-    const targetLng = tracking?.ride_status === 'in_progress' ? tracking.destination_longitude : tracking?.pickup_longitude
-
-    if (driverLat != null && driverLng != null && targetLat != null && targetLng != null) {
-      const overlays = [
-        driverRoutePolyline ? `path-5+0f705a-0.92(${encodeURIComponent(driverRoutePolyline)})` : null,
-        `pin-s-a+0f705a(${driverLng},${driverLat})`,
-        `pin-s-b+ef6a5b(${targetLng},${targetLat})`,
-      ].filter(Boolean).join(',')
-      return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${overlays}/auto/900x650@2x?padding=92&logo=false&attribution=false&access_token=${encodeURIComponent(token)}`
-    }
-
-    const center = pickup ?? { lat: 18.5392, lng: -72.3364 }
-    return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s-a+0f705a(${center.lng},${center.lat})/${center.lng},${center.lat},13/900x650@2x?logo=false&attribution=false&access_token=${encodeURIComponent(token)}`
-  }, [pickup, tracking, driverRoutePolyline])
-
-  useEffect(() => setMapFailed(false), [mapUrl])
-
   const trackingLabel = tracking?.ride_status === 'in_progress'
     ? (lang === 'ht' ? 'Sou wout pou destinasyon' : 'Vers la destination')
     : (lang === 'ht' ? 'Chofè a ap vin pran ou' : 'Votre chauffeur vient vous chercher')
@@ -147,11 +129,12 @@ export default function TaxiMap({ pickup }: Props) {
 
   return (
     <div className="safe-map-wrap">
-      {mapUrl && !mapFailed ? (
-        <img className="safe-map" src={mapUrl} alt={lang === 'ht' ? 'Kat trajè a' : 'Carte du trajet'} onError={() => setMapFailed(true)} />
-      ) : (
-        <div className="safe-map-placeholder"><span>🗺️</span><strong>{unavailable}</strong></div>
-      )}
+<PassengerLiveMap pickup={pickup}
+        driver={tracking?.driver_latitude != null && tracking.driver_longitude != null ? { lat: tracking.driver_latitude, lng: tracking.driver_longitude } : null}
+        target={tracking ? (tracking.ride_status === 'in_progress'
+          ? (tracking.destination_latitude != null && tracking.destination_longitude != null ? { lat: tracking.destination_latitude, lng: tracking.destination_longitude } : null)
+          : (tracking.pickup_latitude != null && tracking.pickup_longitude != null ? { lat: tracking.pickup_latitude, lng: tracking.pickup_longitude } : null)) : null}
+        route={driverRoutePolyline} rideKey={tracking ? tracking.ride_id + ':' + tracking.ride_status : ''} />
 
       <div className="safe-map-shade" />
 
