@@ -8,7 +8,6 @@ import { supabase } from '../lib/supabase'
 import { usePassengerRide } from '../components/PassengerRideProvider'
 import PassengerRideStatusFlow from '../components/PassengerRideStatusFlow'
 import PassengerPendingRideCancel from '../components/PassengerPendingRideCancel'
-import PassengerDestinationPicker from '../components/PassengerDestinationPicker'
 
 const TaxiMap = dynamic(() => import('../components/TaxiMap'), { ssr: false })
 
@@ -70,7 +69,6 @@ export default function HomePage() {
   const [pickupCoords, setPickupCoords] = useState<Point | null>(null)
   const { ride: currentRide, loading: rideLoading, error: rideSyncError, refresh: refreshRide, dismiss: dismissRide } = usePassengerRide()
   const requestBusy = useRef(false)
-  const [pickerOpen, setPickerOpen] = useState(false)
   const [searchMessage, setSearchMessage] = useState('')
   const [destination, setDestination] = useState('')
   const [destinationCoords, setDestinationCoords] = useState<Point | null>(null)
@@ -298,7 +296,6 @@ export default function HomePage() {
     const coords = { lng: result.center[0], lat: result.center[1] }
     // Preserve the address the passenger entered; coordinates come from their selected result.
     setSearchMessage('')
-    setPickerOpen(false)
     setDestinationCoords(coords)
     setResolvedDestinationCoords(coords)
     setSearchResults([])
@@ -427,8 +424,6 @@ export default function HomePage() {
         <div className="greeting-row"><div><p className="eyebrow">{t.hello} {user.user_metadata?.full_name?.split(' ')[0] ?? ''} 👋</p><h1>{t.where}</h1></div><span className="online-pill">{t.drivers}</span></div>
         <div className="route-card"><div className="route-line"><span className="pickup-dot" /><div className="input-wrap"><label>{t.pickup}</label><input value={pickup} readOnly /></div></div><div className="connector" /><div className="route-line"><span className="destination-dot" /><div className="input-wrap"><label>{t.destination}</label><input value={destination} autoComplete="off" autoCorrect="off" spellCheck={false} enterKeyHint="search" onChange={(e) => { setDestination(e.target.value); setDestinationCoords(null); setResolvedDestinationCoords(null); setQuote(null); setSearchResults([]); setSearchMessage(''); setRideError('') }} placeholder={t.destinationPlaceholder} /></div></div></div>
         {searchMessage && <p role="status">{searchMessage}</p>}
-        {destination.trim().length >= 3 && !destinationCoords && <button type="button" onClick={() => setPickerOpen(true)}>{lang === 'ht' ? 'Chwazi destinasyon sou kat la' : 'Choisir la destination sur la carte'}</button>}
-        {pickerOpen && <PassengerDestinationPicker center={pickupCoords ?? { lat: 18.5392, lng: -72.3364 }} ht={lang === 'ht'} onClose={() => setPickerOpen(false)} onConfirm={point => { setDestinationCoords(point); setResolvedDestinationCoords(point); setSearchResults([]); setSearchMessage(''); setPickerOpen(false) }} />}
         {(searchBusy || searchResults.length > 0) && <div className="search-results">{searchBusy && <div className="search-status">{t.searchingAddress}</div>}{searchResults.map((r) => <button key={r.id} onClick={() => chooseSearchResult(r)}><span>📍</span><strong>{r.label}</strong></button>)}</div>}
         <div className="section-heading"><div><p className="eyebrow">{t.chooseService}</p><h2>{t.vehicles}</h2></div><span>{routeDistanceKm && routeDurationMin ? `${routeDistanceKm.toFixed(1)} km · ${routeDurationMin} min` : effectiveQuote ? `${effectiveQuote.distance_km.toFixed(1)} km · ${effectiveQuote.duration_min} min` : t.chooseDestination}</span></div>
         <div className="ride-list">{rideOptions.map((option) => <button key={option.id} className={`ride-option ${selectedRide === option.id ? 'selected' : ''}`} onClick={() => setSelectedRide(option.id)}><span className="ride-icon">{option.id === 'moto' ? '🏍️' : option.id === 'comfort' ? '🚙' : '🚕'}</span><span className="ride-copy"><strong>{option.name}</strong><small>{lang === 'fr' ? option.detailFr : option.detailHt} · {option.eta}</small></span><strong className="ride-price">{selectedRide === option.id && effectiveQuote ? `${effectiveQuote.fare_htg.toLocaleString('fr-FR')} HTG` : '—'}</strong></button>)}</div>
