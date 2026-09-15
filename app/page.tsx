@@ -387,7 +387,30 @@ export default function HomePage() {
       </div>
       <section className="booking-sheet"><div className="grabber" />
         <div className="greeting-row"><div><p className="eyebrow">{t.hello} {user.user_metadata?.full_name?.split(' ')[0] ?? ''} 👋</p><h1>{t.where}</h1></div><span className="online-pill">{t.drivers}</span></div>
-        <div className="route-card"><div className="route-line"><span className="pickup-dot" /><div className="input-wrap"><label>{t.pickup}</label><input value={pickup} readOnly /></div></div><div className="connector" /><div className="route-line"><span className="destination-dot" /><div className="input-wrap"><label>{t.destination}</label><input value={destination} autoComplete="off" autoCorrect="off" spellCheck={false} enterKeyHint="search" onChange={(e) => { setDestination(e.target.value); setDestinationCoords(null); setResolvedDestinationCoords(null); setQuote(null); setRideError('') }} placeholder={t.destinationPlaceholder} /></div></div></div>
+        <div className="route-card">
+          <div className="route-line"><span className="pickup-dot" /><div className="input-wrap"><label>{t.pickup}</label><input value={pickup} readOnly /></div></div>
+          <div className="connector" />
+          <div className="route-line"><span className="destination-dot" /><div className="input-wrap">
+            <label>{t.destination}</label>
+            <input
+              value={destinationCoords ? destination.split('\n')[0] : destination}
+              autoComplete="off" autoCorrect="off" spellCheck={false} enterKeyHint="search"
+              onFocus={() => {
+                if (destinationCoords) {
+                  setDestination(destination.replace(/\n/g, ', '))
+                  setDestinationCoords(null)
+                }
+              }}
+              onChange={(e) => { setDestination(e.target.value); setDestinationCoords(null); setResolvedDestinationCoords(null); setQuote(null); setRideError('') }}
+              placeholder={t.destinationPlaceholder}
+            />
+            {destinationCoords && destination.includes('\n') && (
+              <span style={{ display: 'block', marginTop: 4, fontSize: 14, fontWeight: 700, whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>
+                {destination.split('\n').slice(1).join('\n')}
+              </span>
+            )}
+          </div></div>
+        </div>
         {(searchBusy || searchResults.length > 0) && <div className="search-results">{searchBusy && <div className="search-status">{t.searchingAddress}</div>}{searchResults.map((r) => <button key={r.id} onClick={() => chooseSearchResult(r)}><span>📍</span><strong>{r.label}</strong></button>)}</div>}
         <div className="section-heading"><div><p className="eyebrow">{t.chooseService}</p><h2>{t.vehicles}</h2></div><span>{routeDistanceKm && routeDurationMin ? `${routeDistanceKm.toFixed(1)} km · ${routeDurationMin} min` : effectiveQuote ? `${effectiveQuote.distance_km.toFixed(1)} km · ${effectiveQuote.duration_min} min` : t.chooseDestination}</span></div>
         <div className="ride-list">{rideOptions.map((option) => <button key={option.id} className={`ride-option ${selectedRide === option.id ? 'selected' : ''}`} onClick={() => setSelectedRide(option.id)}><span className="ride-icon">{option.id === 'moto' ? '🏍️' : option.id === 'comfort' ? '🚙' : '🚕'}</span><span className="ride-copy"><strong>{option.name}</strong><small>{lang === 'fr' ? option.detailFr : option.detailHt} · {option.eta}</small></span><strong className="ride-price">{selectedRide === option.id && effectiveQuote ? `${effectiveQuote.fare_htg.toLocaleString('fr-FR')} HTG` : '—'}</strong></button>)}</div>
