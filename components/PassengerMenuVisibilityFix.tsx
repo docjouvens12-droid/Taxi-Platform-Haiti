@@ -10,6 +10,12 @@ export default function PassengerMenuVisibilityFix() {
     style.id = 'passenger-menu-visibility-fix'
     style.textContent = `
       .nav-drawer .drawer-nav > button[data-passenger-core-action="true"]{display:grid!important;visibility:visible!important;opacity:1!important}
+      .nav-drawer .drawer-nav{display:flex!important;flex-direction:column!important}
+      .nav-drawer .drawer-nav > button[data-passenger-order="profile"]{order:1!important}
+      .nav-drawer .drawer-nav > button[data-passenger-order="rides"]{order:2!important}
+      .nav-drawer .drawer-nav > button[data-passenger-order="payment"]{order:3!important}
+      .nav-drawer .drawer-nav > [data-passenger-language-row="true"],.nav-drawer .drawer-nav > .drawer-language{order:4!important}
+      .nav-drawer .drawer-nav > button[data-passenger-order="help"]{order:5!important}
     `
     document.head.appendChild(style)
     let applying = false
@@ -32,6 +38,10 @@ export default function PassengerMenuVisibilityFix() {
       const rides = find(/mes trajets|trajè mwen yo/i)
       const payment = find(/paiement|peman/i)
       const help = find(/aide|èd|ed/i)
+      profile?.setAttribute('data-passenger-order', 'profile')
+      rides?.setAttribute('data-passenger-order', 'rides')
+      payment?.setAttribute('data-passenger-order', 'payment')
+      help?.setAttribute('data-passenger-order', 'help')
       const ordered = [profile, rides, payment].filter(Boolean) as HTMLButtonElement[]
       const desired = [...ordered, language, help].filter(Boolean) as HTMLElement[]
       const current = Array.from(nav.children)
