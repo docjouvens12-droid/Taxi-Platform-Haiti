@@ -214,7 +214,10 @@ export async function GET(request: NextRequest) {
       const precise = results.filter(result => PRECISE_TYPES.has(result.featureType || ''))
       if (precise.length) results = precise
       else {
-        results = []
+        // Geocoders often return the matching street rather than a house
+        // number. Keep that street center as a usable destination fallback.
+        const streets = results.filter(result => ['street', 'road'].includes(result.featureType || ''))
+        results = streets
       }
     } else {
       const relevant = results.filter(result => {
