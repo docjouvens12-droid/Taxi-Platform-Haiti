@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { destinationLines } from '../../../lib/destination-label'
 
 type Result = { id: string; label: string; center: [number, number]; featureType?: string }
 
 const SEARCH_TYPES = 'address,street,neighborhood,locality,place,district,region'
-const PRECISE_TYPES = new Set(['address', 'street', 'neighborhood'])
+const PRECISE_TYPES = new Set(['address', 'street'])
 
 const KNOWN_CITY_FALLBACKS: Array<{ keys: string[]; label: string; center: [number, number] }> = [
   { keys: ['les gonaives', 'gonaives', 'gonayiv'], label: 'Les Gonaïves, Artibonite, Haïti', center: [-72.6843, 19.4475] },
@@ -67,16 +66,6 @@ function buildAddressVariants(query: string) {
     }
   }
   return Array.from(variants)
-}
-
-function contextFromLabel(label: string) {
-  const parts = label.split(',').map(part => part.trim()).filter(Boolean)
-  if (parts.length >= 3) return parts.slice(-3).join(', ')
-  return label.trim()
-}
-
-function streetLine(query: string) {
-  return destinationLines(query, knownCityFallback(query)?.label ?? '').street
 }
 
 function knownCityFallback(query: string): Result | null {
@@ -232,12 +221,9 @@ export async function GET(request: NextRequest) {
       return distance(a) - distance(b)
     })
 
-    const displayResults = results.slice(0, addressLike ? 8 : 6).map(result => ({
-      ...result,
-      label: addressLike ? `${knownCityFallback(q)?.label ?? contextFromLabel(result.label)}\n${streetLine(q)}` : result.label,
-    }))
+    const displayResults = results.slice(0, addressLike ? 8 : 6)
 
-    return NextResponse.json({ results: displayResults, query: q, precise: addressLike && results.length > 0, fallback: false })
+    return NextResponse.json({ results: displayResults, query: q, precise: addressLike && results.some(result => result.featureType === 'address'), fallback: false })
   } catch {
     return NextResponse.json({ results: [], error: 'GEOCODE_FAILED' }, { status: 502 })
   }
