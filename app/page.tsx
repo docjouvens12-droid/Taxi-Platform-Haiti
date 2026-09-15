@@ -412,7 +412,7 @@ export default function HomePage() {
           </div></div>
         </div>
         {(searchBusy || searchResults.length > 0) && <div className="search-results">{searchBusy && <div className="search-status">{t.searchingAddress}</div>}{searchResults.map((r) => <button key={r.id} onClick={() => chooseSearchResult(r)}><span>📍</span><strong>{r.label}</strong></button>)}</div>}
-        <div className="section-heading"><div><p className="eyebrow">{t.chooseService}</p><h2>{t.vehicles}</h2></div><span>{routeDistanceKm && routeDurationMin ? `${routeDistanceKm.toFixed(1)} km · ${routeDurationMin} min` : effectiveQuote ? `${effectiveQuote.distance_km.toFixed(1)} km · ${effectiveQuote.duration_min} min` : t.chooseDestination}</span></div>
+        <div className="section-heading"><div><p className="eyebrow">{t.chooseService}</p><h2>{t.vehicles}</h2></div></div>
         <div className="ride-list">{rideOptions.map((option) => <button key={option.id} className={`ride-option ${selectedRide === option.id ? 'selected' : ''}`} onClick={() => setSelectedRide(option.id)}><span className="ride-icon">{option.id === 'moto' ? '🏍️' : option.id === 'comfort' ? '🚙' : '🚕'}</span><span className="ride-copy"><strong>{option.name}</strong><small>{lang === 'fr' ? option.detailFr : option.detailHt} · {option.eta}</small></span><strong className="ride-price">{selectedRide === option.id && effectiveQuote ? `${effectiveQuote.fare_htg.toLocaleString('fr-FR')} HTG` : '—'}</strong></button>)}</div>
         <div className="payment-row"><div><span className="payment-icon">💵</span><div><small>{t.payment}</small><strong>{t.cash}</strong></div></div><button onClick={() => openPanel('payment')}>{t.change}</button></div>
         {rideError && <div className="ride-error">{rideError}</div>}
