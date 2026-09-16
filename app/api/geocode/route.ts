@@ -9,7 +9,7 @@ const KNOWN_CITY_FALLBACKS: Array<{ keys: string[]; label: string; center: [numb
   { keys: ['les gonaives', 'gonaives', 'gonayiv'], label: 'Les Gonaives, Artibonite, Haiti', center: [-72.6843, 19.4475] },
   { keys: ['port au prince', 'potoprens'], label: 'Port-au-Prince, Ouest, Haïti', center: [-72.3364, 18.5392] },
   { keys: ['delmas'], label: 'Delmas, Ouest, Haïti', center: [-72.2962, 18.5447] },
-  { keys: ['petion ville', 'petion-ville', 'petyonvil'], label: 'Pétion-Ville, Ouest, Haïti', center: [-72.2852, 18.5125] },
+  { keys: ['petion ville', 'petion-ville', 'petioin ville', 'petyonvil'], label: 'Pétion-Ville, Ouest, Haïti', center: [-72.2852, 18.5125] },
   { keys: ['cap haitien', 'cap-haitien', 'okap'], label: 'Cap-Haïtien, Nord, Haïti', center: [-72.1982, 19.7594] },
   { keys: ['saint marc', 'saint-marc', 'saint marq', 'senmak'], label: 'Saint-Marc, Artibonite, Haïti', center: [-72.7000, 19.1082] },
   { keys: ['jacmel', 'jakmel'], label: 'Jacmel, Sud-Est, Haïti', center: [-72.5370, 18.2343] },
@@ -172,7 +172,10 @@ export async function GET(request: NextRequest) {
 
   try {
     const batches: Result[][] = []
-    const variants = buildAddressVariants(q)
+    // Correct this common city typo for providers without changing the street
+    // or house number entered by the passenger.
+    const providerQuery = q.replace(/\bpetioin[\s-]+ville\b/gi, 'Pétion-Ville')
+    const variants = buildAddressVariants(providerQuery)
     batches.push(...await Promise.all(variants.map(variant => searchMapboxV6(variant, true))))
 
     let hasPrecise = batches.some(batch => batch.some(result => PRECISE_TYPES.has(result.featureType || '')))
@@ -181,11 +184,11 @@ export async function GET(request: NextRequest) {
       hasPrecise = batches.some(batch => batch.some(result => PRECISE_TYPES.has(result.featureType || '')))
     }
     if (!hasPrecise && addressLike) {
-      const streetQuery = q.replace(/^\s*\d+[a-z]?\s*[,\-]?\s*/i, '').trim()
-      batches.push(...await Promise.all(Array.from(new Set([q, streetQuery])).map(searchOpenStreetMap)))
+      const streetQuery = providerQuery.replace(/^\s*\d+[a-z]?\s*[,\-]?\s*/i, '').trim()
+      batches.push(...await Promise.all(Array.from(new Set([providerQuery, streetQuery])).map(searchOpenStreetMap)))
       hasPrecise = batches.some(batch => batch.some(result => PRECISE_TYPES.has(result.featureType || '')))
     }
-    if (!batches.some(batch => batch.length)) batches.push(await searchMapboxV6(q, false))
+    if (!batches.some(batch => batch.length)) batches.push(await searchMapboxV6(providerQuery, false))
 
     const deduped = new Map<string, Result>()
     for (const batch of batches) {
@@ -203,7 +206,6 @@ export async function GET(request: NextRequest) {
       results = results.filter(result => requestedCity.keys.some(key => containsName(result.label, key)))
     }
     if (!results.length && addressLike) {
-      const normalizedAddress = normalize(q)
       const city = requestedCity
       if (city) {
         results = [{

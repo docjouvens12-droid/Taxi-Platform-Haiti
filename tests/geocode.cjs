@@ -43,5 +43,18 @@ async function search(q) {
     assert.equal(result.precise, false)
     assert.ok(!result.results[0].label.includes('Gonaïves'), 'Reject a provider result from the wrong city')
   }
-  console.log('PASS: explicit city, missing street, neighborhood rejection, real street label')
+  const providerQueries = []
+  global.fetch = async url => {
+    providerQueries.push(new URL(url).searchParams.get('q'))
+    if (String(url).includes('nominatim')) return Response.json([])
+    return Response.json({ features: ['Pétion-Ville, Ouest, Haïti', "Saut-d’Eau, Centre, Haïti"].map((label, i) => ({
+      id: String(i), geometry: { coordinates: [-72.28, 18.51 + i] },
+      properties: { feature_type: 'place', full_address: label }
+    })) })
+  }
+  const typo = await search('70 rue lamarre petioin ville')
+  assert.deepEqual(typo.results.map(result => result.label), ['Pétion-Ville, Ouest, Haïti'])
+  assert.equal(typo.precise, false, 'A city suggestion is not an exact street address')
+  assert.ok(providerQueries.every(query => !query.includes('petioin')), 'Providers receive the corrected city spelling')
+  console.log('PASS: city filtering, city typo, approximate results, real street label')
 })().finally(() => { global.fetch = originalFetch }).catch(error => { console.error(error); process.exitCode = 1 })
