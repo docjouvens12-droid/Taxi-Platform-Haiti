@@ -196,9 +196,15 @@ export async function GET(request: NextRequest) {
     }
 
     let results = Array.from(deduped.values())
+    // An explicit city takes precedence over proximity and fuzzy matches.
+    const containsName = (text: string, name: string) => (` ${normalize(text)} `).includes(` ${normalize(name)} `)
+    const requestedCity = KNOWN_CITY_FALLBACKS.find(city => city.keys.some(key => containsName(q, key)))
+    if (requestedCity) {
+      results = results.filter(result => requestedCity.keys.some(key => containsName(result.label, key)))
+    }
     if (!results.length && addressLike) {
       const normalizedAddress = normalize(q)
-      const city = KNOWN_CITY_FALLBACKS.find((item) => item.keys.some((key) => normalizedAddress.includes(normalize(key))))
+      const city = requestedCity
       if (city) {
         results = [{
           id: `address-fallback-${normalize(q).replace(/\s+/g, '-')}`,

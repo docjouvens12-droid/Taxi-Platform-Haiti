@@ -28,13 +28,20 @@ async function search(q) {
   assert.equal(city.results[0].featureType, 'place')
   assert.equal(calls, 0, 'An explicit city search still works')
   const missing = await search('12 rue Introuvable Gonaives')
-  assert.deepEqual(missing.results, [], 'Do not silently use the city center for a street')
+  assert.equal(missing.results[0].featureType, 'place', 'A city match must stay labeled as a city')
   assert.equal(missing.precise, false)
   featureType = 'neighborhood'
-  assert.deepEqual((await search('12 rue Introuvable Gonaives')).results, [])
+  assert.equal((await search('12 rue Introuvable Gonaives')).precise, false)
   featureType = 'street'
   const street = await search('12 rue Test Gonaives')
   assert.equal(street.results[0].label, 'Rue Test, Les Gonaïves, Haïti', 'Show the actual matched address rather than fabricating a label')
-  assert.equal(street.precise, true)
+  assert.equal(street.precise, false)
+  for (const query of ['21 rue Lamarre Petion ville', '70 rue Petion port au prince']) {
+    const result = await search(query)
+    assert.equal(result.results.length, 1)
+    assert.equal(result.results[0].featureType, 'place')
+    assert.equal(result.precise, false)
+    assert.ok(!result.results[0].label.includes('Gonaïves'), 'Reject a provider result from the wrong city')
+  }
   console.log('PASS: explicit city, missing street, neighborhood rejection, real street label')
 })().finally(() => { global.fetch = originalFetch }).catch(error => { console.error(error); process.exitCode = 1 })
