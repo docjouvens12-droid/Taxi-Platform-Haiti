@@ -326,6 +326,13 @@ export default function HomePage() {
   function chooseSearchResult(result: SearchResult) {
     const coords = { lng: result.center[0], lat: result.center[1] }
     if (!isHaitiPoint(coords)) return
+    if (['place', 'locality', 'neighborhood'].includes(result.featureType || '') && /\b(rue|ruelle|route|avenue|impasse)\b|^\s*\d+/i.test(destination)) {
+      setDestinationCoords(null)
+      setResolvedDestinationCoords(coords)
+      setSearchResults([])
+      setDestinationPickerOpen(true)
+      return
+    }
     const streetWithNumber = result.featureType === 'street' && /^\s*\d+\b/.test(destination)
     setRouteGeometry(null); setRouteApproximate(false)
     setDestination(streetWithNumber ? destination.trim() : result.label)

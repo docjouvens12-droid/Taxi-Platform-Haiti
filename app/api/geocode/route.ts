@@ -181,7 +181,8 @@ export async function GET(request: NextRequest) {
       hasPrecise = batches.some(batch => batch.some(result => PRECISE_TYPES.has(result.featureType || '')))
     }
     if (!hasPrecise && addressLike) {
-      batches.push(await searchOpenStreetMap(q))
+      const streetQuery = q.replace(/^\s*\d+[a-z]?\s*[,\-]?\s*/i, '').trim()
+      batches.push(...await Promise.all(Array.from(new Set([q, streetQuery])).map(searchOpenStreetMap)))
       hasPrecise = batches.some(batch => batch.some(result => PRECISE_TYPES.has(result.featureType || '')))
     }
     if (!batches.some(batch => batch.length)) batches.push(await searchMapboxV6(q, false))
@@ -201,9 +202,9 @@ export async function GET(request: NextRequest) {
       if (city) {
         results = [{
           id: `address-fallback-${normalize(q).replace(/\s+/g, '-')}`,
-          label: `${city.label}\n${q}`,
+          label: city.label,
           center: city.center,
-          featureType: 'street',
+          featureType: 'place',
         }]
       }
     }
@@ -230,7 +231,7 @@ export async function GET(request: NextRequest) {
         // Geocoders often return the matching street rather than a house
         // number. Keep that street center as a usable destination fallback.
         const streets = results.filter(result => ['street', 'road'].includes(result.featureType || ''))
-        results = streets
+        results = streets.length ? streets : results.filter(result => ['place', 'locality', 'neighborhood'].includes(result.featureType || ''))
       }
     } else {
       const relevant = results.filter(result => {
