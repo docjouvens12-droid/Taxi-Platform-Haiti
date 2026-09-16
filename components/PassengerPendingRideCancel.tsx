@@ -5,10 +5,8 @@ import { supabase } from '../lib/supabase'
 
 import { usePassengerRide } from './PassengerRideProvider'
 
-export default function PassengerPendingRideCancel() {
-  const pathname = usePathname()
-  const isPassengerPage = pathname === '/' || pathname === '/movi' || pathname === '/passenger/dashboard'
-  const [ride, setRide] = useState<PendingRide | null>(null)
+export default function PassengerPendingRideCancel({ lang = 'fr' }: { lang?: 'fr' | 'ht' }) {
+  const { ride, refresh } = usePassengerRide()
   const [busy, setBusy] = useState(false)
   async function cancelRide() {
     if (!ride || busy) return

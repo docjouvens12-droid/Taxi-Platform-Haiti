@@ -58,6 +58,8 @@ function LanguageMenu({ lang, onChange }: { lang: Lang; onChange: (lang: Lang) =
 }
 
 export default function HomePage() {
+  const { ride: currentRide, loading: rideLoading, error: rideSyncError, refresh: refreshRide, dismiss: dismissRide } = usePassengerRide()
+  const requestBusy = useRef(false)
   const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
   const [lang, setLang] = useState<Lang>('fr')
   const t = copy[lang]
@@ -182,9 +184,8 @@ export default function HomePage() {
     const normalizedQuery = query.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
     if (normalizedQuery.includes('gonaives')) {
       const street = query.replace(/\s*gona[iï]ves\s*$/i, '').replace(/^\s*,\s*/, '').trim()
-      setDestinationDisplay({ city: 'Les Gonaives, Artibonite, Haiti', street: street || 'Centre-ville' })
       setSearchResults([{ id: `gonaives-${normalizedQuery}`, label: `Les Gonaives, Artibonite, Haiti\n${street || 'Centre-ville'}`, center: [-72.6843, 19.4475] }])
-      setSearchMessage('')
+
       setSearchBusy(false)
       return
     }
@@ -195,7 +196,7 @@ export default function HomePage() {
       controller = new AbortController()
       const abortTimer = window.setTimeout(() => controller?.abort(), 12500)
       setSearchBusy(true)
-      setSearchMessage('')
+
       try {
         const params = new URLSearchParams({ q: query })
         if (pickupCoords) {
@@ -351,11 +352,14 @@ export default function HomePage() {
     dismissRide()
     setDestination(''); setDestinationCoords(null); setResolvedDestinationCoords(null)
     setQuote(null); setRouteGeometry(null); setRouteDistanceKm(null); setRouteDurationMin(null)
-    setSearchResults([]); setSearchMessage(''); setRideId(null); setRideError(''); setRequestState('idle')
+    setSearchResults([]);  setRideId(null); setRideError(''); setRequestState('idle')
   }
 
   async function requestRide() {
     if (!user || !effectiveDestinationCoords || !isHaitiPoint(effectiveDestinationCoords)) return
+    if (requestBusy.current) return
+    requestBusy.current = true
+    try {
     setRequestState('requesting'); setRideError('')
     let requestPickup: Point
     try {

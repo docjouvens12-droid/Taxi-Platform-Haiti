@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import PassengerLiveMap from './PassengerLiveMap'
 import { supabase } from '../lib/supabase'
 import { usePassengerRide } from './PassengerRideProvider'
