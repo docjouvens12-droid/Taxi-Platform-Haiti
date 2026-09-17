@@ -5,6 +5,8 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import DestinationPickerMap from '../components/DestinationPickerMap'
+import { destinationFromResult, destinationReady, destinationRpcFields, type Destination, type DestinationResult } from '../lib/passenger-destination'
+import PassengerDestinationDetails from '../components/PassengerDestinationDetails'
 
 import { usePassengerRide } from '../components/PassengerRideProvider'
 import PassengerRideStatusFlow from '../components/PassengerRideStatusFlow'
@@ -19,7 +21,7 @@ type Point = { lat: number; lng: number }
 const isHaitiPoint = (point: Point) => point.lat >= 17.8 && point.lat <= 20.1 && point.lng >= -74.7 && point.lng <= -71.5
 const haitiTestPickup: Point = { lat: 18.5392, lng: -72.3364 }
 type Quote = { distance_km: number; duration_min: number; fare_htg: number }
-type SearchResult = { id: string; label: string; center: [number, number]; featureType?: string }
+type SearchResult = DestinationResult
 type RouteGeometry = { type: 'LineString'; coordinates: number[][] }
 type RideHistory = { id: string; status: string; pickup_address: string; destination_address: string; final_fare_htg: number | null; estimated_fare_htg: number | null; requested_at: string }
 
@@ -83,7 +85,8 @@ export default function HomePage() {
   const [destination, setDestination] = useState('')
   const [destinationPickerOpen, setDestinationPickerOpen] = useState(false)
   const [destinationCoords, setDestinationCoords] = useState<Point | null>(null)
-  const [resolvedDestinationCoords, setResolvedDestinationCoords] = useState<Point | null>(null)
+  const [selectedDestination, setSelectedDestination] = useState<Destination | null>(null)
+  const [mapCandidate, setMapCandidate] = useState<Destination | null>(null)
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searchBusy, setSearchBusy] = useState(false)
   const [searchCompletedQuery, setSearchCompletedQuery] = useState('')
@@ -102,7 +105,7 @@ export default function HomePage() {
   const [rides, setRides] = useState<RideHistory[]>([])
   const [ridesBusy, setRidesBusy] = useState(false)
 
-  const effectiveDestinationCoords = destinationCoords ?? resolvedDestinationCoords
+  const effectiveDestinationCoords = destinationReady(selectedDestination) ? destinationCoords : null
   const ride = useMemo(() => rideOptions.find((o) => o.id === selectedRide) ?? rideOptions[1], [selectedRide])
   const fallbackQuote = useMemo<Quote | null>(() => {
     if (!pickupCoords || !effectiveDestinationCoords || !isHaitiPoint(pickupCoords) || !isHaitiPoint(effectiveDestinationCoords)) return null
@@ -181,15 +184,6 @@ export default function HomePage() {
       return
     }
 
-    const normalizedQuery = query.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-    if (normalizedQuery.includes('gonaives')) {
-      const street = query.replace(/\s*gona[iï]ves\s*$/i, '').replace(/^\s*,\s*/, '').trim()
-      setSearchResults([{ id: `gonaives-${normalizedQuery}`, label: `Les Gonaives, Artibonite, Haiti\n${street || 'Centre-ville'}`, center: [-72.6843, 19.4475] }])
-
-      setSearchBusy(false)
-      return
-    }
-
     let cancelled = false
     let controller: AbortController | null = null
     const timer = window.setTimeout(async () => {
@@ -210,8 +204,7 @@ export default function HomePage() {
         setSearchResults((json.results ?? []) as SearchResult[])
         setSearchCompletedQuery(query)
       } catch {
-        setSearchResults([])
-        setSearchCompletedQuery(query)
+        if (!cancelled) { setSearchResults([]); setSearchCompletedQuery(query) }
       } finally {
         window.clearTimeout(abortTimer)
         if (!cancelled) setSearchBusy(false)
@@ -326,19 +319,21 @@ export default function HomePage() {
   function chooseSearchResult(result: SearchResult) {
     const coords = { lng: result.center[0], lat: result.center[1] }
     if (!isHaitiPoint(coords)) return
-    if (['place', 'locality', 'neighborhood'].includes(result.featureType || '') && /\b(rue|ruelle|route|avenue|impasse)\b|^\s*\d+/i.test(destination)) {
+    const candidate = destinationFromResult(result)
+    setQuote(null); setRouteGeometry(null); setRouteDistanceKm(null); setRouteDurationMin(null)
+    setMapCandidate(candidate)
+    if (!destinationReady(candidate)) {
+      setSelectedDestination(null)
       setDestinationCoords(null)
-      setResolvedDestinationCoords(coords)
       setSearchResults([])
       setDestinationPickerOpen(true)
       return
     }
-    const streetWithNumber = result.featureType === 'street' && /^\s*\d+\b/.test(destination)
     setRouteGeometry(null); setRouteApproximate(false)
-    setDestination(streetWithNumber ? destination.trim() : result.label)
+    setDestination(candidate.formattedAddress)
     setDestinationCoords(coords)
-    setResolvedDestinationCoords(coords)
-    setSelectedStreetPoint(streetWithNumber)
+    setSelectedDestination(candidate)
+    setSelectedStreetPoint(false)
     setSearchResults([])
     setSearchCompletedQuery('')
     setRideError('')
@@ -357,13 +352,13 @@ export default function HomePage() {
 
   function newRide() {
     dismissRide()
-    setDestination(''); setDestinationCoords(null); setResolvedDestinationCoords(null)
+    setDestination(''); setDestinationCoords(null); setSelectedDestination(null); setMapCandidate(null)
     setQuote(null); setRouteGeometry(null); setRouteDistanceKm(null); setRouteDurationMin(null)
     setSearchResults([]);  setRideId(null); setRideError(''); setRequestState('idle')
   }
 
   async function requestRide() {
-    if (!user || !effectiveDestinationCoords || !isHaitiPoint(effectiveDestinationCoords)) return
+    if (!user || !effectiveDestinationCoords || !destinationReady(selectedDestination)) return
     if (requestBusy.current) return
     requestBusy.current = true
     try {
@@ -409,14 +404,12 @@ export default function HomePage() {
     }
     setQuote(freshQuote)
 
-    const { data, error } = await supabase.rpc('request_ride_v3', {
+    const { data, error } = await supabase.rpc('request_passenger_ride_precise', {
       p_service_type: selectedRide,
       p_pickup_address: copy[lang].current,
       p_pickup_latitude: requestPickup.lat,
       p_pickup_longitude: requestPickup.lng,
-      p_destination_address: destination,
-      p_destination_latitude: effectiveDestinationCoords.lat,
-      p_destination_longitude: effectiveDestinationCoords.lng,
+      ...destinationRpcFields(selectedDestination),
       p_estimated_distance_km: freshQuote.distance_km,
       p_estimated_duration_min: freshQuote.duration_min,
       p_estimated_fare_htg: freshQuote.fare_htg,
@@ -475,7 +468,8 @@ export default function HomePage() {
             <input
               value={destinationCoords ? destination.split('\n')[0] : destination}
               autoComplete="off" autoCorrect="off" spellCheck={false} enterKeyHint="search"
-              onChange={(e) => { setDestination(e.target.value); setDestinationCoords(null); setResolvedDestinationCoords(null); setSelectedStreetPoint(false); setSearchCompletedQuery(''); setRouteGeometry(null); setRouteApproximate(false); setRouteDistanceKm(null); setRouteDurationMin(null); setQuote(null); setRideError('') }}
+              disabled={requestState === 'requesting'}
+              onChange={(e) => { setDestination(e.target.value); setDestinationCoords(null); setSelectedDestination(null); setMapCandidate(null); setSelectedStreetPoint(false); setSearchCompletedQuery(''); setRouteGeometry(null); setRouteApproximate(false); setRouteDistanceKm(null); setRouteDurationMin(null); setQuote(null); setRideError('') }}
               placeholder={t.destinationPlaceholder}
             />
             {destinationCoords && destination.includes('\n') && (
@@ -485,20 +479,21 @@ export default function HomePage() {
             )}
           </div></div>
         </div>
+        {selectedDestination && <PassengerDestinationDetails destination={selectedDestination} ht={lang === 'ht'} />}
         {(searchBusy || searchResults.length > 0) && <div className="search-results">{searchBusy && <div className="search-status">{t.searchingAddress}</div>}{searchResults.map((r) => <button key={r.id} onClick={() => chooseSearchResult(r)}><span>📍</span><span><strong>{r.label}</strong><small>{r.featureType === 'address' ? (lang === 'ht' ? 'Adrès sou kat la' : 'Adresse sur la carte') : r.featureType === 'street' ? (lang === 'ht' ? 'Pwen nan ri a · nimewo kay pa verifye' : 'Point dans la rue · numéro non vérifié') : (lang === 'ht' ? 'Zòn sèlman · presize pwen egzak la' : 'Zone seulement · précisez le point exact')}</small></span></button>)}</div>}
         {selectedStreetPoint && <div className="movi-address-note">{lang === 'ht' ? 'Ou chwazi ri a. Nimewo kay la rete nan adrès demann nan, men pin nan se yon pwen nan ri a.' : 'Vous avez choisi la rue. Le numéro reste dans la demande, mais le repère indique un point dans cette rue.'}</div>}
         {!destinationCoords && !searchBusy && searchCompletedQuery === destination.trim() && searchResults.length === 0 && <div className="movi-address-note">{lang === 'ht' ? 'Pa gen rezilta pou adrès sa a. Ou ka chwazi pwen an sou kat la.' : 'Aucun résultat pour cette adresse. Vous pouvez placer le point sur la carte.'}</div>}
         {pickupStatus === 'ready' && pickup === copy[lang].testPosition && <div className="movi-address-note">{lang === 'ht' ? 'GPS pa disponib; n ap sèvi ak Port-au-Prince kòm pwen depa tès la.' : 'GPS indisponible; Port-au-Prince est utilisé comme point de départ de test.'}</div>}
-        {(selectedStreetPoint || (!destinationCoords && searchCompletedQuery === destination.trim() && searchResults.length === 0)) && <button type="button" className="movi-open-destination-map" onClick={() => setDestinationPickerOpen(true)}>📍 {lang === 'ht' ? 'Ajiste pwen an sou kat la' : 'Ajuster le point sur la carte'}</button>}
+        <button type="button" className="movi-open-destination-map" disabled={requestState === 'requesting'} onClick={() => setDestinationPickerOpen(true)}>📍 {lang === 'ht' ? 'Chwazi pwen egzak sou kat la' : 'Choisir le point exact sur la carte'}</button>
         <div className="section-heading"><div><p className="eyebrow">{t.chooseService}</p><h2>{t.vehicles}</h2></div></div>
         <div className="ride-list">{rideOptions.map((option) => <button key={option.id} className={`ride-option ${selectedRide === option.id ? 'selected' : ''}`} onClick={() => setSelectedRide(option.id)}><span className="ride-icon">{option.id === 'moto' ? '🏍️' : option.id === 'comfort' ? '🚙' : '🚕'}</span><span className="ride-copy"><strong>{option.name}</strong><small>{lang === 'fr' ? option.detailFr : option.detailHt} · {option.eta}</small></span><strong className="ride-price">{selectedRide === option.id && effectiveQuote ? `${effectiveQuote.fare_htg.toLocaleString('fr-FR')} HTG` : '—'}</strong></button>)}</div>
         <div className="payment-row"><div><span className="payment-icon">📱</span><div><small>{t.payment}</small><strong>{paymentMethod === 'natcash' ? 'NatCash' : 'MonCash'}</strong></div></div><button onClick={() => openPanel('payment')}>{t.change}</button></div>
         {rideError && <div className="ride-error">{rideError}</div>}
-        {requestState === 'searching' ? <div className="searching-card"><div className="spinner" /><div><strong>{t.searchingDriver}</strong><small>{ride.name} · {t.trip} #{rideId?.slice(0, 8)}</small></div></div> : <button className="request-button" disabled={!effectiveQuote || rideSyncError || requestState === 'requesting'} onClick={requestRide}><span>{requestState === 'requesting' ? t.sending : effectiveQuote ? `${t.request} ${ride.name}` : t.calculating}</span><strong>{effectiveQuote ? `${effectiveQuote.fare_htg.toLocaleString('fr-FR')} HTG` : '—'}</strong></button>}
+        {requestState === 'searching' ? <div className="searching-card"><div className="spinner" /><div><strong>{t.searchingDriver}</strong><small>{ride.name} · {t.trip} #{rideId?.slice(0, 8)}</small></div></div> : <button className="request-button" disabled={!destinationReady(selectedDestination) || !effectiveQuote || rideSyncError || requestState === 'requesting'} onClick={requestRide}><span>{requestState === 'requesting' ? t.sending : !destinationReady(selectedDestination) ? t.chooseDestination : effectiveQuote ? `${t.request} ${ride.name}` : t.calculating}</span><strong>{effectiveQuote ? `${effectiveQuote.fare_htg.toLocaleString('fr-FR')} HTG` : '—'}</strong></button>}
         <p className="fine-print">{t.mapNote}</p>
       </>}</section>
     </div>
-    {destinationPickerOpen && <DestinationPickerMap pickup={pickupCoords} initialDestination={effectiveDestinationCoords} initialQuery={destination} lang={lang} onCancel={() => setDestinationPickerOpen(false)} onConfirm={(point, label) => { setDestination(label); setDestinationCoords(point); setResolvedDestinationCoords(point); setSelectedStreetPoint(false); setRouteGeometry(null); setRouteApproximate(false); setQuote(null); setSearchResults([]); setDestinationPickerOpen(false) }} />}
+    {destinationPickerOpen && <DestinationPickerMap pickup={pickupCoords} candidate={mapCandidate ?? selectedDestination} initialQuery={destination} lang={lang} onCancel={() => setDestinationPickerOpen(false)} onConfirm={(value) => { if (!destinationReady(value)) return; setDestination(value.formattedAddress); setDestinationCoords({ lat: value.latitude, lng: value.longitude }); setSelectedDestination(value); setMapCandidate(value); setSelectedStreetPoint(false); setRouteGeometry(null); setRouteApproximate(false); setRouteDistanceKm(null); setRouteDurationMin(null); setQuote(null); setSearchResults([]); setDestinationPickerOpen(false) }} />}
     {menuOpen && <><button className="drawer-backdrop" aria-label="Close menu" onClick={() => setMenuOpen(false)} /><aside className="nav-drawer">
       <div className="drawer-head"><div className="drawer-brand"><span className="brand-mark">M</span><div><strong>MOVI</strong><small>{t.menu}</small></div></div><button onClick={() => setMenuOpen(false)}>×</button></div>
       <div className="drawer-user"><div className="drawer-avatar">{(user.user_metadata?.full_name?.[0] ?? user.email?.[0] ?? 'U').toUpperCase()}</div><div><strong>{user.user_metadata?.full_name || t.passengerAccount}</strong><small>{user.email}</small></div></div>

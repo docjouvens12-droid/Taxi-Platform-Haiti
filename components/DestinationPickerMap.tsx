@@ -2,203 +2,126 @@
 
 import { useEffect, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
-
-type Point = { lat: number; lng: number }
-type Lang = 'fr' | 'ht'
+import { destinationFromResult, isHaitiPoint, type Destination, type DestinationResult, type Point } from '../lib/passenger-destination'
 
 type Props = {
   pickup: Point | null
-  initialDestination: Point | null
+  candidate: Destination | null
   initialQuery: string
-  lang: Lang
-  onConfirm: (point: Point, label: string) => void
+  lang: 'fr' | 'ht'
+  onConfirm: (destination: Destination) => void
   onCancel: () => void
 }
 
-function mapboxLabel(feature: any) {
-  const props = feature?.properties ?? {}
-  const featureType = String(props.feature_type || feature?.feature_type || '')
-  const full = String(props.full_address || '').trim()
-  const name = String(props.name || feature?.text || '').trim()
-  const context = String(props.place_formatted || '').trim()
-  const label = full || (name && context ? `${name}, ${context}` : name || context)
-  return { label, featureType }
-}
-
-export default function DestinationPickerMap({ pickup, initialDestination, initialQuery, lang, onConfirm, onCancel }: Props) {
-  const mapContainer = useRef<HTMLDivElement | null>(null)
+export default function DestinationPickerMap({ pickup, candidate, initialQuery, lang, onConfirm, onCancel }: Props) {
+  const ht = lang === 'ht'
+  const start = useRef<Point>(candidate ? { lat: candidate.latitude, lng: candidate.longitude } : pickup ?? { lat: 19.4475, lng: -72.6843 })
+  const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
-  const [point, setPoint] = useState<Point>(initialDestination ?? pickup ?? { lat: 19.4475, lng: -72.6843 })
-  const [label, setLabel] = useState(lang === 'ht' ? 'Pwen chwazi sou kat la' : 'Point choisi sur la carte')
-  const [resolving, setResolving] = useState(false)
-  const [preciseAddress, setPreciseAddress] = useState(false)
-  const [pinAdjusted, setPinAdjusted] = useState(false)
+  const searchVersion = useRef(0)
+  const [point, setPoint] = useState(start.current)
+  const [resolved, setResolved] = useState<Destination | null>(null)
+  const [confirmedPoint, setConfirmedPoint] = useState(false)
+  const [mapReady, setMapReady] = useState(false)
+  const [mapError, setMapError] = useState(false)
+  const [moving, setMoving] = useState(false)
   const [searchQuery, setSearchQuery] = useState(initialQuery)
-  const [description, setDescription] = useState(initialQuery)
-  const [searchResults, setSearchResults] = useState<Array<{ id: string; label: string; center: [number, number] }>>([])
+  const [searchResults, setSearchResults] = useState<DestinationResult[]>([])
   const [searching, setSearching] = useState(false)
-
-  async function searchPlace() {
-    const query = searchQuery.trim()
-    if (query.length < 3) return
-    setSearching(true)
-    try {
-      const response = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`, { cache: 'no-store' })
-      const json = response.ok ? await response.json() : null
-      setSearchResults(Array.isArray(json?.results) ? json.results : [])
-    } catch { setSearchResults([]) }
-    finally { setSearching(false) }
-  }
+  const [searchError, setSearchError] = useState(false)
+  const activeCandidate = useRef(candidate)
 
   useEffect(() => {
     const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-    if (!token || !mapContainer.current || mapRef.current) return
-
-    mapboxgl.accessToken = token
-    const start = initialDestination ?? pickup ?? { lat: 19.4475, lng: -72.6843 }
-    const map = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: [start.lng, start.lat],
-      zoom: initialDestination ? 16 : 14.5,
-      attributionControl: false,
-    })
+    if (!token || !mapContainer.current) { setMapError(true); return }
+    let map: mapboxgl.Map
+    try {
+      map = new mapboxgl.Map({ container: mapContainer.current, accessToken: token, style: 'mapbox://styles/mapbox/streets-v12', center: [start.current.lng, start.current.lat], zoom: 16 })
+    } catch { setMapError(true); return }
     mapRef.current = map
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right')
-    if (!initialDestination) {
-      const normalized = initialQuery.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-      const city = [
-        { pattern: /saint[ -]mar[qc]|senmak/, query: 'Saint-Marc' },
-        { pattern: /gonaives|gonayiv/, query: 'Les Gonaïves' },
-        { pattern: /port[ -]au[ -]prince|potoprens/, query: 'Port-au-Prince' },
-        { pattern: /cap[ -]haitien|okap/, query: 'Cap-Haïtien' },
-        { pattern: /petion[ -]ville|petyonvil/, query: 'Pétion-Ville' },
-        { pattern: /jacmel|jakmel/, query: 'Jacmel' },
-        { pattern: /les cayes|okay/, query: 'Les Cayes' },
-      ].find(item => item.pattern.test(normalized))
-      if (city) void fetch(`/api/geocode?q=${encodeURIComponent(city.query)}`, { cache: 'no-store' })
-        .then(response => response.json())
-        .then(json => { const center = json.results?.[0]?.center; if (mapRef.current === map && Array.isArray(center) && center.length >= 2) map.flyTo({ center: [Number(center[0]), Number(center[1])], zoom: 13 }) })
-        .catch(() => {})
-    }
-
-    if (pickup) {
-      const el = document.createElement('div')
-      el.className = 'movi-pickup-dot'
-      new mapboxgl.Marker({ element: el }).setLngLat([pickup.lng, pickup.lat]).addTo(map)
-    }
-
-    const syncCenter = () => {
+    map.on('load', () => { setMapReady(true); setMapError(false) })
+    map.on('error', () => setMapError(true))
+    map.on('movestart', () => { setMoving(true); setConfirmedPoint(false); setResolved(null) })
+    map.on('moveend', () => {
       const center = map.getCenter()
       setPoint({ lat: center.lat, lng: center.lng })
-    }
-    map.on('move', syncCenter)
-    map.on('moveend', syncCenter)
-    map.on('dragstart', () => setPinAdjusted(true))
-
-    return () => {
-      map.off('move', syncCenter)
-      map.off('moveend', syncCenter)
-      map.remove()
-      mapRef.current = null
-    }
-  }, [pickup, initialDestination])
+      setMoving(false)
+    })
+    map.on('click', event => map.easeTo({ center: event.lngLat, duration: 0 }))
+    return () => { searchVersion.current++; map.remove(); mapRef.current = null }
+  }, [])
 
   useEffect(() => {
-    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-    if (!token) return
+    if (moving) return
     const controller = new AbortController()
-    const timer = window.setTimeout(async () => {
-      setResolving(true)
-      setPreciseAddress(false)
-      const fallback = lang === 'ht'
-        ? `Pwen chwazi (${point.lat.toFixed(5)}, ${point.lng.toFixed(5)})`
-        : `Point choisi (${point.lat.toFixed(5)}, ${point.lng.toFixed(5)})`
-
-      try {
-        const mapboxParams = new URLSearchParams({
-          longitude: String(point.lng),
-          latitude: String(point.lat),
-          access_token: token,
-          language: 'fr',
-          country: 'ht',
-        })
-        const mapboxResponse = await fetch(`https://api.mapbox.com/search/geocode/v6/reverse?${mapboxParams.toString()}`, { signal: controller.signal, cache: 'no-store' })
-        const mapboxJson = mapboxResponse.ok ? await mapboxResponse.json() : null
-        const features = Array.isArray(mapboxJson?.features) ? mapboxJson.features : []
-        const preciseFeature = features.find((feature: any) => {
-          const type = String(feature?.properties?.feature_type || feature?.feature_type || '')
-          return type === 'address' || type === 'street'
-        })
-
-        if (preciseFeature) {
-          const precise = mapboxLabel(preciseFeature).label
-          if (precise) {
-            setLabel(precise)
-            setPreciseAddress(true)
-            return
-          }
-        }
-
-        const firstFeature = features[0]
-        const broad = firstFeature ? mapboxLabel(firstFeature).label : ''
-        setLabel(broad || fallback)
-      } catch {
-        if (!controller.signal.aborted) setLabel(fallback)
-      } finally {
-        if (!controller.signal.aborted) setResolving(false)
-      }
-    }, 500)
-
-    return () => {
-      window.clearTimeout(timer)
-      controller.abort()
+    setResolved(null)
+    setConfirmedPoint(false)
+    const fallback: Destination = {
+      placeId: null, placeName: ht ? 'Pwen chwazi' : 'Point choisi',
+      formattedAddress: `${ht ? 'Pwen chwazi' : 'Point choisi'} (${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}), Haïti`,
+      latitude: point.lat, longitude: point.lng, placeType: 'map_pin', confirmationState: 'map_confirmed',
     }
-  }, [point.lat, point.lng, lang])
+    const timer = window.setTimeout(async () => {
+      const original = activeCandidate.current
+      if (original && Math.abs(original.latitude - point.lat) < 0.0000001 && Math.abs(original.longitude - point.lng) < 0.0000001) {
+        setResolved({ ...original, confirmationState: 'map_confirmed' })
+        return
+      }
+      try {
+        const params = new URLSearchParams({ latitude: String(point.lat), longitude: String(point.lng), access_token: process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '', language: 'fr', country: 'ht' })
+        const response = await fetch(`https://api.mapbox.com/search/geocode/v6/reverse?${params}`, { signal: controller.signal, cache: 'no-store' })
+        const json = response.ok ? await response.json() : null
+        if (controller.signal.aborted) return
+        const props = json?.features?.[0]?.properties
+        const address = props?.full_address || [props?.name, props?.place_formatted].filter(Boolean).join(', ')
+        setResolved({ ...fallback, formattedAddress: address || fallback.formattedAddress })
+      } catch { if (!controller.signal.aborted) setResolved(fallback) }
+    }, 250)
+    return () => { clearTimeout(timer); controller.abort() }
+  }, [point.lat, point.lng, moving, ht])
 
-  const title = lang === 'ht' ? 'Chwazi destinasyon an' : 'Choisissez la destination'
-  const hint = lang === 'ht' ? 'Deplase kat la pou mete pin nan egzakteman kote ou prale.' : 'Déplacez la carte pour placer le repère exactement à votre destination.'
-  const confirm = lang === 'ht' ? 'Konfime destinasyon' : 'Confirmer la destination'
-  const cancel = lang === 'ht' ? 'Anile' : 'Annuler'
-  const numberedAddress = /^\s*\d+\b/.test(description)
-  const needsPinAdjustment = numberedAddress && !preciseAddress && !pinAdjusted
+  async function searchPlace() {
+    const version = ++searchVersion.current
+    setSearching(true); setSearchError(false); setSearchResults([])
+    try {
+      const response = await fetch(`/api/geocode?q=${encodeURIComponent(searchQuery)}`, { cache: 'no-store' })
+      if (!response.ok) throw new Error('SEARCH_FAILED')
+      const json = await response.json()
+      if (version === searchVersion.current) setSearchResults(json.results ?? [])
+    } catch { if (version === searchVersion.current) setSearchError(true) }
+    finally { if (version === searchVersion.current) setSearching(false) }
+  }
 
-  return (
-    <div className="movi-picker-overlay">
-      <div ref={mapContainer} className="movi-picker-map" />
-      <div className="movi-center-pin" aria-hidden="true"><span>●</span></div>
-      <div className="movi-picker-head">
-        <button onClick={onCancel} aria-label={cancel}>×</button>
-        <div><strong>{title}</strong><small>{hint}</small></div>
-      </div>
-      <form className="movi-picker-search" onSubmit={event => { event.preventDefault(); void searchPlace() }}>
-        <input value={searchQuery} onChange={event => setSearchQuery(event.target.value)} placeholder={lang === 'ht' ? 'Chèche yon adrès oswa vil an Ayiti' : 'Chercher une adresse ou une ville en Haïti'} />
-        <button type="submit" disabled={searching || searchQuery.trim().length < 3}>{searching ? '…' : '⌕'}</button>
-        {searchResults.length > 0 && <div className="movi-picker-results">{searchResults.map(result => <button key={result.id} type="button" onClick={() => { mapRef.current?.flyTo({ center: result.center, zoom: 16 }); setDescription(result.label.replace(/\n/g, ', ')); setSearchResults([]) }}>{result.label}</button>)}</div>}
-      </form>
-      <button type="button" className="movi-picker-haiti" onClick={() => mapRef.current?.flyTo({ center: [-72.65, 19.05], zoom: 7 })}>{lang === 'ht' ? 'Gade tout Ayiti' : 'Voir toute Haïti'}</button>
-      <div className="movi-picker-sheet">
-        <div className="movi-grabber" />
-        <small>{lang === 'ht' ? 'DESTINASYON' : 'DESTINATION'}</small>
-        <strong>{resolving ? (lang === 'ht' ? 'N ap jwenn adrès la…' : 'Recherche de l’adresse…') : label}</strong>
-        <input className="movi-picker-description" value={description} onChange={event => setDescription(event.target.value)} placeholder={lang === 'ht' ? 'Non adrès oswa kote a' : 'Nom de l’adresse ou du lieu'} aria-label={lang === 'ht' ? 'Deskripsyon destinasyon an' : 'Description de la destination'} />
-        {needsPinAdjustment && <p className="movi-pin-warning">{lang === 'ht' ? 'Kat la jwenn vil la sèlman. Deplase kat la pou mete pin nan sou adrès egzak la.' : 'La carte n’a trouvé que la ville. Déplacez-la pour placer le repère sur l’adresse exacte.'}</p>}
-        <button disabled={resolving || needsPinAdjustment} onClick={() => onConfirm(point, description.trim() || label)}>{confirm}</button>
-      </div>
-      <style jsx global>{`
-        .movi-picker-overlay{position:fixed;inset:0;z-index:9999;background:#e8efec;font-family:Inter,system-ui,sans-serif}
-        .movi-picker-map{position:absolute;inset:0}
-        .movi-picker-head{position:absolute;top:max(18px,env(safe-area-inset-top));left:16px;right:16px;display:flex;gap:12px;align-items:center;z-index:4;pointer-events:none}
-        .movi-picker-head button{pointer-events:auto;width:48px;height:48px;border:0;border-radius:50%;background:#fff;color:#10263c;font-size:30px;line-height:1;box-shadow:0 8px 24px rgba(16,38,60,.18)}
-        .movi-picker-head div{background:rgba(255,255,255,.96);border-radius:18px;padding:10px 14px;box-shadow:0 8px 24px rgba(16,38,60,.14);max-width:calc(100% - 64px)}
-        .movi-picker-head strong,.movi-picker-head small{display:block}.movi-picker-head strong{font-size:16px;color:#10263c}.movi-picker-head small{margin-top:2px;font-size:11px;line-height:1.3;color:#6c7d76}
-        .movi-picker-search{position:absolute;top:calc(max(18px,env(safe-area-inset-top)) + 72px);left:16px;right:16px;z-index:5;display:grid;grid-template-columns:1fr 48px;background:#fff;border-radius:15px;padding:4px;box-shadow:0 8px 24px rgba(16,38,60,.16)}.movi-picker-search input{min-width:0;border:0;padding:10px;font-size:14px;outline:none}.movi-picker-search>button{border:0;border-radius:11px;background:#0f705a;color:#fff;font-size:25px}.movi-picker-search>button:disabled{opacity:.5}.movi-picker-results{grid-column:1/-1;display:grid;max-height:190px;overflow:auto}.movi-picker-results button{border:0;border-top:1px solid #e5ece9;background:#fff;padding:10px;text-align:left;font-size:12px;color:#10263c}.movi-picker-haiti{position:absolute;right:16px;bottom:230px;z-index:5;border:0;border-radius:999px;background:#fff;color:#0f705a;padding:9px 12px;font-size:11px;font-weight:900;box-shadow:0 8px 24px rgba(16,38,60,.16)}
-        .movi-center-pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);z-index:3;width:48px;height:48px;border-radius:50% 50% 50% 0;rotate:-45deg;background:#0f705a;border:4px solid #fff;box-shadow:0 8px 24px rgba(0,0,0,.28);display:grid;place-items:center;pointer-events:none}
-        .movi-center-pin span{rotate:45deg;color:#fff;font-size:18px}
-        .movi-picker-sheet{position:absolute;left:0;right:0;bottom:0;z-index:4;background:#fff;border-radius:28px 28px 0 0;padding:12px 20px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px rgba(16,38,60,.14)}
-        .movi-grabber{width:48px;height:5px;border-radius:999px;background:#d5dfdc;margin:0 auto 16px}.movi-picker-sheet>small{display:block;color:#0f705a;font-weight:900;letter-spacing:.16em;font-size:11px}.movi-picker-sheet>strong{display:block;margin:6px 0 10px;color:#10263c;font-size:18px;line-height:1.25}.movi-picker-description{width:100%;box-sizing:border-box;margin-bottom:12px;padding:12px;border:1px solid #dce7e3;border-radius:12px;font-size:13px;color:#10263c}.movi-pin-warning{margin:0 0 12px;color:#9a4b12;font-size:12px;font-weight:750;line-height:1.35}.movi-picker-sheet>button{width:100%;border:0;border-radius:18px;padding:17px;background:#102f4a;color:#fff;font-size:17px;font-weight:900}.movi-picker-sheet>button:disabled{opacity:.5;cursor:not-allowed}
-        .movi-pickup-dot{width:20px;height:20px;border-radius:50%;background:#1f7ae0;border:4px solid #fff;box-shadow:0 4px 12px rgba(16,38,60,.3)}
-      `}</style>
+  const ready = mapReady && !mapError && !moving && !!resolved && isHaitiPoint(point)
+  return <div className="movi-picker-overlay" role="dialog" aria-modal="true" aria-label={ht ? 'Chwazi pwen egzak la' : 'Choisir le point exact'}>
+    <div ref={mapContainer} className="movi-picker-map" />
+    <div className="movi-center-pin" aria-hidden="true">📍</div>
+    <div className="movi-picker-head"><button type="button" onClick={onCancel}>{ht ? 'Anile' : 'Annuler'}</button><strong>{ht ? 'Chwazi destinasyon an' : 'Choisissez la destination'}</strong></div>
+    <form className="movi-picker-search" onSubmit={event => { event.preventDefault(); void searchPlace() }}>
+      <input aria-label={ht ? 'Chèche yon kote' : 'Rechercher un lieu'} value={searchQuery} onChange={event => { searchVersion.current++; setSearching(false); setSearchResults([]); setSearchQuery(event.target.value) }} />
+      <button disabled={searching || searchQuery.trim().length < 3}>{searching ? '…' : (ht ? 'Chèche' : 'Rechercher')}</button>
+      {searchResults.map(result => <button key={result.id} type="button" onClick={() => {
+        const next = destinationFromResult(result)
+        if (!isHaitiPoint({ lat: next.latitude, lng: next.longitude })) return
+        activeCandidate.current = next; setConfirmedPoint(false); setResolved(null); setSearchResults([])
+        mapRef.current?.jumpTo({ center: result.center, zoom: 16 })
+        setPoint({ lat: next.latitude, lng: next.longitude })
+      }}>{result.placeName || result.label}<small>{result.formattedAddress || result.label}</small></button>)}
+    </form>
+    <div className="movi-picker-sheet">
+      <p>{ht ? 'Deplase kat la oswa klike pou chwazi pwen egzak ou vle ale a.' : 'Déplacez la carte ou cliquez pour choisir votre point de destination exact.'}</p>
+      {candidate?.confirmationState === 'needs_map_confirmation' && <p className="movi-pin-warning">{ht ? 'Rezilta sa a se yon zòn sèlman. Konfime pwen egzak la.' : 'Ce résultat désigne une zone. Confirmez le point exact.'}</p>}
+      {mapError && <p role="alert">{ht ? 'Kat la pa disponib. Fèmen epi eseye ankò.' : 'Carte indisponible. Fermez puis réessayez.'}</p>}
+      {searchError && <p role="alert">{ht ? 'Rechèch la echwe. Eseye ankò.' : 'La recherche a échoué. Réessayez.'}</p>}
+      <strong>{resolved?.placeName}</strong><span>{resolved?.formattedAddress || (ht ? 'N ap jwenn adrès la…' : 'Recherche de l’adresse…')}</span>
+      <small>Latitude: {point.lat.toFixed(6)} · Longitude: {point.lng.toFixed(6)}</small>
+      {!isHaitiPoint(point) && <p role="alert">{ht ? 'Chwazi yon pwen an Ayiti.' : 'Choisissez un point en Haïti.'}</p>}
+      <label><input type="checkbox" checked={confirmedPoint} disabled={!ready} onChange={event => setConfirmedPoint(event.target.checked)} />{ht ? 'Pin nan sou pwen egzak mwen vle ale a.' : 'Le repère indique mon point de destination exact.'}</label>
+      <button type="button" disabled={!ready || !confirmedPoint} onClick={() => { if (ready && confirmedPoint && resolved) onConfirm(resolved) }}>{ht ? 'Konfime destinasyon' : 'Confirmer la destination'}</button>
     </div>
-  )
+    <style jsx>{`
+      .movi-picker-overlay{position:fixed;inset:0;z-index:9999;background:#e8efec;color:#10263c}.movi-picker-map{position:absolute;inset:0}.movi-center-pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);font-size:40px;pointer-events:none}.movi-picker-head{position:absolute;top:16px;left:16px;right:16px;display:flex;gap:12px;align-items:center;background:#fff;padding:10px;border-radius:14px}.movi-picker-search{position:absolute;top:80px;left:16px;right:16px;display:flex;flex-wrap:wrap;background:#fff;padding:8px;border-radius:14px;max-height:25vh;overflow:auto}.movi-picker-search input{flex:1;min-width:100px;padding:8px}.movi-picker-search button[type=button]{width:100%;text-align:left}.movi-picker-search small{display:block}.movi-picker-sheet{position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;padding:16px 20px calc(20px + env(safe-area-inset-bottom));display:grid;gap:8px;max-height:45vh;overflow:auto}.movi-picker-sheet p{margin:0;font-size:13px}.movi-picker-sheet label{font-size:14px}.movi-picker-sheet button{padding:14px;background:#102f4a;color:white;border:0;border-radius:12px;font-weight:800}.movi-picker-sheet button:disabled{opacity:.45}.movi-pin-warning{color:#9a4b12}
+    `}</style>
+  </div>
 }

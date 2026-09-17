@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-type Result = { id: string; label: string; center: [number, number]; featureType?: string }
+type Result = { id: string; label: string; center: [number, number]; featureType?: string; placeName?: string; formattedAddress?: string; requiresMapConfirmation?: boolean }
+
+function enrich(result: Result): Result {
+  return { ...result, placeName: result.placeName || result.label.split(',')[0].trim(), formattedAddress: result.label, requiresMapConfirmation: result.requiresMapConfirmation || !['address', 'poi'].includes(result.featureType || '') }
+}
 
 const SEARCH_TYPES = 'address,street,neighborhood,locality,place,district,region'
-const PRECISE_TYPES = new Set(['address', 'street'])
+const PRECISE_TYPES = new Set(['address', 'poi'])
 
 const KNOWN_CITY_FALLBACKS: Array<{ keys: string[]; label: string; center: [number, number] }> = [
   { keys: ['les gonaives', 'gonaives', 'gonayiv'], label: 'Les Gonaives, Artibonite, Haiti', center: [-72.6843, 19.4475] },
@@ -107,7 +111,7 @@ export async function GET(request: NextRequest) {
   const addressLike = looksLikeStreetAddress(q)
   if (!addressLike) {
     const exactCity = exactKnownCity(q)
-    if (exactCity) return NextResponse.json({ results: [exactCity], query: q, precise: false, fallback: false })
+    if (exactCity) return NextResponse.json({ results: [enrich(exactCity)], query: q, precise: false, fallback: false })
   }
 
   const proximity = Number.isFinite(lat) && Number.isFinite(lng) ? `${lng},${lat}` : null
@@ -126,7 +130,7 @@ export async function GET(request: NextRequest) {
         if (!Number.isFinite(latValue) || !Number.isFinite(lngValue)) return []
         const type = String(row.type || row.addresstype || '')
         const featureType = ['house', 'building'].includes(type) ? 'address' : type === 'road' ? 'street' : type === 'neighbourhood' ? 'neighborhood' : type
-        return [{ id: `osm-${row.place_id ?? `${lngValue},${latValue}`}`, label: String(row.display_name || query), center: [lngValue, latValue] as [number, number], featureType }]
+        return [{ id: `osm-${row.place_id ?? `${lngValue},${latValue}`}`, label: String(row.display_name || query), placeName: String(row.name || row.display_name?.split(',')[0] || query), center: [lngValue, latValue] as [number, number], featureType }]
       })
     } catch { return [] } finally { clearTimeout(timeout) }
   }
@@ -145,7 +149,7 @@ export async function GET(request: NextRequest) {
         const center = f.geometry?.coordinates
         if (!Array.isArray(center) || center.length < 2) return []
         const props = f.properties ?? {}
-        return [{ id: f.id || props.mapbox_id || `${center[0]},${center[1]}`, label: completeLabel(props, props.name || f.name || ''), center: [Number(center[0]), Number(center[1])] as [number, number], featureType: props.feature_type || f.feature_type || '' }]
+        return [{ id: f.id || props.mapbox_id || `${center[0]},${center[1]}`, label: completeLabel(props, props.name || f.name || ''), center: [Number(center[0]), Number(center[1])] as [number, number], placeName: String(props.name || f.name || ''), requiresMapConfirmation: ['interpolated', 'approximate'].includes(props.coordinates?.accuracy) || ['low', 'medium'].includes(props.match_code?.confidence), featureType: props.feature_type || f.feature_type || '' }]
       })
     } catch { return [] } finally { clearTimeout(timeout) }
   }
@@ -165,7 +169,7 @@ export async function GET(request: NextRequest) {
         const propertyCenter = Number.isFinite(Number(props.coordinates?.longitude)) && Number.isFinite(Number(props.coordinates?.latitude)) ? [Number(props.coordinates.longitude), Number(props.coordinates.latitude)] : null
         const center = Array.isArray(geometryCenter) && geometryCenter.length >= 2 ? geometryCenter : propertyCenter
         if (!Array.isArray(center) || center.length < 2) return []
-        return [{ id: f.id || props.mapbox_id || `searchbox-${center[0]},${center[1]}`, label: completeLabel(props, props.name || ''), center: [Number(center[0]), Number(center[1])] as [number, number], featureType: props.feature_type || f.feature_type || '' }]
+        return [{ id: f.id || props.mapbox_id || `searchbox-${center[0]},${center[1]}`, label: completeLabel(props, props.name || ''), center: [Number(center[0]), Number(center[1])] as [number, number], placeName: String(props.name || f.name || ''), requiresMapConfirmation: ['interpolated', 'approximate'].includes(props.coordinates?.accuracy) || ['low', 'medium'].includes(props.match_code?.confidence), featureType: props.feature_type || f.feature_type || '' }]
       })
     } catch { return [] } finally { clearTimeout(timeout) }
   }
@@ -179,7 +183,7 @@ export async function GET(request: NextRequest) {
     batches.push(...await Promise.all(variants.map(variant => searchMapboxV6(variant, true))))
 
     let hasPrecise = batches.some(batch => batch.some(result => PRECISE_TYPES.has(result.featureType || '')))
-    if (!hasPrecise && addressLike) {
+    if (!hasPrecise) {
       batches.push(...await Promise.all(variants.map(variant => searchMapboxSearchBox(variant))))
       hasPrecise = batches.some(batch => batch.some(result => PRECISE_TYPES.has(result.featureType || '')))
     }
@@ -262,7 +266,7 @@ export async function GET(request: NextRequest) {
       return distance(a) - distance(b)
     })
 
-    const displayResults = results.slice(0, addressLike ? 8 : 6)
+    const displayResults = results.filter(result => Number.isFinite(result.center[0]) && Number.isFinite(result.center[1])).slice(0, addressLike ? 8 : 6).map(enrich)
 
     return NextResponse.json({ results: displayResults, query: q, precise: addressLike && results.some(result => result.featureType === 'address'), fallback: false })
   } catch {
