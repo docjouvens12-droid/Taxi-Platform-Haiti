@@ -260,7 +260,8 @@ export default function DestinationPickerMap({
                   result.name ||
                   `${lat}, ${lng}`,
                 center: [lng, lat],
-                featureType: types[0] || 'unknown',
+
+                center: [lng, lat] as [number, number],
                 placeName: result.name || '',
                 formattedAddress:
                   result.formatted_address ||
