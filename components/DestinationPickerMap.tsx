@@ -259,7 +259,7 @@ export default function DestinationPickerMap({
                   result.formatted_address ||
                   result.name ||
                   `${lat}, ${lng}`,
-                center: [lng, lat],
+                
 
                 center: [lng, lat] as [number, number],
                 placeName: result.name || '',
