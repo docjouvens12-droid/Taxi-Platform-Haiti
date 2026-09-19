@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase'
 import DestinationPickerMap from '../components/DestinationPickerMap'
 import { destinationFromResult, destinationReady, destinationRpcFields, type Destination, type DestinationResult } from '../lib/passenger-destination'
 import PassengerDestinationDetails from '../components/PassengerDestinationDetails'
-
+import { loadGoogleMaps } from '../lib/google-maps' 
 import { usePassengerRide } from '../components/PassengerRideProvider'
 import PassengerRideStatusFlow from '../components/PassengerRideStatusFlow'
 import PassengerPendingRideCancel from '../components/PassengerPendingRideCancel'
