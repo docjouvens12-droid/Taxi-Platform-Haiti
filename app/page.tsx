@@ -62,7 +62,7 @@ function LanguageMenu({ lang, onChange }: { lang: Lang; onChange: (lang: Lang) =
 export default function HomePage() {
   const { ride: currentRide, loading: rideLoading, error: rideSyncError, refresh: refreshRide, dismiss: dismissRide } = usePassengerRide()
   const requestBusy = useRef(false)
-  const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+  
   const [lang, setLang] = useState<Lang>('fr')
   const t = copy[lang]
   const [user, setUser] = useState<User | null>(null)
@@ -218,25 +218,94 @@ export default function HomePage() {
     }
   }, [destination, destinationCoords, pickupCoords, lang])
 
-  useEffect(() => {
-    if (!pickupCoords || !effectiveDestinationCoords || !isHaitiPoint(pickupCoords) || !isHaitiPoint(effectiveDestinationCoords)) { setRouteGeometry(null); setRouteApproximate(false); setRouteDistanceKm(null); setRouteDurationMin(null); return }
-    let cancelled = false
-    setRouteGeometry(null); setRouteApproximate(false); setRouteDistanceKm(null); setRouteDurationMin(null)
-    ;(async () => {
-      try {
-        if (!token) throw new Error('MAPBOX_TOKEN_MISSING')
-        const coords = `${pickupCoords.lng},${pickupCoords.lat};${effectiveDestinationCoords.lng},${effectiveDestinationCoords.lat}`
-        const response = await fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?overview=full&geometries=geojson&steps=false&access_token=${encodeURIComponent(token)}`, { cache: 'no-store' })
-        if (!response.ok) throw new Error('DIRECTIONS_UNAVAILABLE')
-        const json = await response.json(); const route = json.routes?.[0]
-        if (!route || !route.geometry) throw new Error('ROUTE_UNAVAILABLE')
-        if (cancelled) return
-        setRouteGeometry(route.geometry); setRouteApproximate(false); setRouteDistanceKm(route.distance / 1000); setRouteDurationMin(Math.max(1, Math.round(route.duration / 60)))
-      } catch { if (!cancelled) { setRouteGeometry(null); setRouteApproximate(false); setRouteDistanceKm(null); setRouteDurationMin(null) } }
-    })()
-    return () => { cancelled = true }
-  }, [pickupCoords, effectiveDestinationCoords, token])
+useEffect(() => {
+  if (
+    !pickupCoords ||
+    !effectiveDestinationCoords ||
+    !isHaitiPoint(pickupCoords) ||
+    !isHaitiPoint(effectiveDestinationCoords)
+  ) {
+    setRouteGeometry(null)
+    setRouteApproximate(false)
+    setRouteDistanceKm(null)
+    setRouteDurationMin(null)
+    return
+  }
 
+  let cancelled = false
+
+  setRouteGeometry(null)
+  setRouteApproximate(false)
+  setRouteDistanceKm(null)
+  setRouteDurationMin(null)
+
+  ;(async () => {
+    try {
+      const google = await loadGoogleMaps()
+      const directionsService = new google.maps.DirectionsService()
+
+      const result = await directionsService.route({
+        origin: {
+          lat: pickupCoords.lat,
+          lng: pickupCoords.lng,
+        },
+        destination: {
+          lat: effectiveDestinationCoords.lat,
+          lng: effectiveDestinationCoords.lng,
+        },
+        travelMode: google.maps.TravelMode.DRIVING,
+        region: 'HT',
+      })
+
+      if (cancelled) return
+
+      const route = result.routes?.[0]
+      const leg = route?.legs?.[0]
+
+      if (!route || !leg) {
+        throw new Error('ROUTE_UNAVAILABLE')
+      }
+
+      const coordinates =
+        route.overview_path?.map((point: any) => [
+          point.lng(),
+          point.lat(),
+        ]) ?? []
+
+      setRouteGeometry({
+        type: 'LineString',
+        coordinates,
+      })
+
+      setRouteApproximate(false)
+
+      setRouteDistanceKm(
+        leg.distance?.value != null
+          ? leg.distance.value / 1000
+          : null
+      )
+
+      setRouteDurationMin(
+        leg.duration?.value != null
+          ? Math.max(1, Math.round(leg.duration.value / 60))
+          : null
+      )
+    } catch (error) {
+      console.error('Google Directions failed:', error)
+
+      if (!cancelled) {
+        setRouteGeometry(null)
+        setRouteApproximate(false)
+        setRouteDistanceKm(null)
+        setRouteDurationMin(null)
+      }
+    }
+  })()
+
+  return () => {
+    cancelled = true
+  }
+}, [pickupCoords, effectiveDestinationCoords])
   useEffect(() => {
     if (!user || !pickupCoords || !effectiveDestinationCoords || !isHaitiPoint(pickupCoords) || !isHaitiPoint(effectiveDestinationCoords)) { setQuote(null); return }
     let cancelled = false
