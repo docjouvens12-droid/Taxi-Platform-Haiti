@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
   const lat = searchParams.has('lat') ? Number(searchParams.get('lat')) : NaN
   const lng = searchParams.has('lng') ? Number(searchParams.get('lng')) : NaN
 
-  if (!token) return NextResponse.json({ results: [], error: 'MAPBOX_TOKEN_MISSING' }, { status: 500 })
+  
   if (q.length < 3) return NextResponse.json({ results: [] })
 
   const addressLike = looksLikeStreetAddress(q)
