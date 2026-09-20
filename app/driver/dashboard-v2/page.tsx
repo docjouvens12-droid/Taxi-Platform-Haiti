@@ -24,7 +24,7 @@ export default function DriverDashboardV2Page(){
   useEffect(()=>{const session=readSession();if(!session?.access_token){setMessage('Session chauffeur introuvable. Déconnectez-vous puis reconnectez-vous.');return}tokenRef.current=session.access_token;userIdRef.current=session.user?.id??null;void refreshDashboard(false)},[])
   useEffect(()=>{const sync=()=>setLang(localStorage.getItem('taxi-language')==='ht'?'ht':'fr');sync();const timer=window.setInterval(sync,1000);return()=>window.clearInterval(timer)},[])
   useEffect(()=>{if(!online||!userIdRef.current)return;void loadRides(userIdRef.current,true);const timer=window.setInterval(()=>void loadRides(userIdRef.current,true),1000);return()=>window.clearInterval(timer)},[online])
-seEffect(() => {
+useEffect(() => {
   if (!online || !navigator.geolocation) return
 
   const watchId = navigator.geolocation.watchPosition(
