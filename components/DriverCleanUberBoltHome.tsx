@@ -214,10 +214,10 @@ const routeRef=useRef<any>(null)
 
   setGpsStatus('ok')
 
-  const point:[number,number]=[
-    pos.coords.longitude,
-    pos.coords.latitude,
-  ]
+ const point:[number,number]=[
+  -72.3200,
+  18.5500,
+] 
 
   lastPositionRef.current=point
 
