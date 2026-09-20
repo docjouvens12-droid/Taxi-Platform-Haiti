@@ -19,7 +19,7 @@ type Panel = 'home' | 'rides' | 'payment' | 'profile' | 'driver' | 'help'
 type RideOption = { id: 'moto' | 'standard' | 'comfort'; name: string; detailFr: string; detailHt: string; eta: string }
 type Point = { lat: number; lng: number }
 const isHaitiPoint = (point: Point) => point.lat >= 17.8 && point.lat <= 20.1 && point.lng >= -74.7 && point.lng <= -71.5
-const haitiTestPickup: Point = { lat: 18.5392, lng: -72.3364 }
+const haitiTestPickup: Point = { lat: 18.5440, lng: -72.3030 }
 type Quote = { distance_km: number; duration_min: number; fare_htg: number }
 type SearchResult = DestinationResult
 type RouteGeometry = { type: 'LineString'; coordinates: number[][] }
