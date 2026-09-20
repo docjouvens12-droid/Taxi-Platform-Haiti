@@ -390,6 +390,7 @@ useEffect(() => {
     if (!isHaitiPoint(coords)) return
     const candidate = destinationFromResult(result)
     setQuote(null); setRouteGeometry(null); setRouteDistanceKm(null); setRouteDurationMin(null)
+    candidate.confirmationState = 'map_confirmed'
     setMapCandidate(candidate)
     
     setRouteGeometry(null); setRouteApproximate(false)
