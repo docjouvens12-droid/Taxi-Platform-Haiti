@@ -116,24 +116,65 @@ export async function GET(request: NextRequest) {
 
   const proximity = Number.isFinite(lat) && Number.isFinite(lng) ? `${lng},${lat}` : null
 
-  async function searchOpenStreetMap(query: string): Promise<Result[]> {
-    const params = new URLSearchParams({ q: query, format: 'jsonv2', addressdetails: '1', limit: '8', countrycodes: 'ht', 'accept-language': 'fr' })
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 6000)
-    try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, { signal: controller.signal, cache: 'no-store', headers: { 'User-Agent': 'MOVI-Haiti/1.0 (address-search)' } })
-      if (!response.ok) return []
-      const rows = await response.json()
-      return (Array.isArray(rows) ? rows : []).flatMap((row: any) => {
-        const latValue = Number(row.lat)
-        const lngValue = Number(row.lon)
-        if (!Number.isFinite(latValue) || !Number.isFinite(lngValue)) return []
-        const type = String(row.type || row.addresstype || '')
-        const featureType = ['house', 'building'].includes(type) ? 'address' : type === 'road' ? 'street' : type === 'neighbourhood' ? 'neighborhood' : type
-        return [{ id: `osm-${row.place_id ?? `${lngValue},${latValue}`}`, label: String(row.display_name || query), placeName: String(row.name || row.display_name?.split(',')[0] || query), center: [lngValue, latValue] as [number, number], featureType }]
-      })
-    } catch { return [] } finally { clearTimeout(timeout) }
+ async function searchGoogleGeocoding(query: string): Promise<Result[]> {
+  const key = process.env.GOOGLE_MAPS_API_KEY
+  if (!key) return []
+
+  const params = new URLSearchParams({
+    address: query,
+    key,
+    language: 'fr',
+    region: 'ht',
+    components: 'country:HT',
+  })
+
+  try {
+    const response = await fetch(
+      https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}
+    )
+
+    if (!response.ok) return []
+
+    const json = await response.json()
+
+    return (json.results ?? []).slice(0, 8).map((item: any) => {
+      const types = item.types ?? []
+
+      let featureType = 'place'
+      if (
+        types.includes('street_address') ||
+        types.includes('premise') ||
+        types.includes('subpremise')
+      ) {
+        featureType = 'address'
+      } else if (types.includes('route')) {
+        featureType = 'street'
+      } else if (types.includes('neighborhood')) {
+        featureType = 'neighborhood'
+      } else if (types.includes('locality')) {
+        featureType = 'locality'
+      } else if (types.includes('administrative_area_level_1')) {
+        featureType = 'region'
+      }
+
+      return {
+        id: item.place_id,
+        label: item.formatted_address,
+        placeName:
+          item.address_components?.[0]?.long_name ?? item.formatted_address,
+        center: [
+          item.geometry.location.lng,
+          item.geometry.location.lat,
+        ],
+        featureType,
+        formattedAddress: item.formatted_address,
+        requiresMapConfirmation: false,
+      }
+    })
+  } catch {
+    return []
   }
+}
 
   async function searchMapboxV6(query: string, useTypes = true): Promise<Result[]> {
     const params = new URLSearchParams({ q: query, access_token: token as string, country: 'ht', autocomplete: 'true', limit: '10', language: 'fr' })
@@ -189,7 +230,7 @@ export async function GET(request: NextRequest) {
     }
     if (!hasPrecise && addressLike) {
       const streetQuery = providerQuery.replace(/^\s*\d+[a-z]?\s*[,\-]?\s*/i, '').trim()
-      batches.push(...await Promise.all(Array.from(new Set([providerQuery, streetQuery])).map(searchOpenStreetMap)))
+      batches.push(...await Promise.all(Array.from(new Set([providerQuery, streetQuery])).map(searchGoogleGeocoding)))
       hasPrecise = batches.some(batch => batch.some(result => PRECISE_TYPES.has(result.featureType || '')))
     }
     if (!batches.some(batch => batch.length)) batches.push(await searchMapboxV6(providerQuery, false))
