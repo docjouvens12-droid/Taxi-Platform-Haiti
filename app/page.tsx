@@ -394,7 +394,7 @@ useEffect(() => {
     
     setRouteGeometry(null); setRouteApproximate(false)
     const streetLine = destination.replace(/\bport[-\s]?au[-\s]?prince\b/gi, '').replace(/\s+/g, ' ').trim()
-setDestination(${result.label}\n${streetLine})
+setDestination(result.label + '\n' + streetLine
     setDestinationCoords(coords)
     setSelectedDestination(candidate)
     setSelectedStreetPoint(false)
