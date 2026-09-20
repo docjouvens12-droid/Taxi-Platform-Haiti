@@ -391,13 +391,7 @@ useEffect(() => {
     const candidate = destinationFromResult(result)
     setQuote(null); setRouteGeometry(null); setRouteDistanceKm(null); setRouteDurationMin(null)
     setMapCandidate(candidate)
-    if (!destinationReady(candidate)) {
-      setSelectedDestination(null)
-      setDestinationCoords(null)
-      setSearchResults([])
-      setDestinationPickerOpen(true)
-      return
-    }
+    
     setRouteGeometry(null); setRouteApproximate(false)
     setDestination(candidate.formattedAddress)
     setDestinationCoords(coords)
