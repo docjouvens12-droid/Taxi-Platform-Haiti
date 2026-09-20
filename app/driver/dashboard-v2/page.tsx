@@ -24,6 +24,30 @@ export default function DriverDashboardV2Page(){
   useEffect(()=>{const session=readSession();if(!session?.access_token){setMessage('Session chauffeur introuvable. Déconnectez-vous puis reconnectez-vous.');return}tokenRef.current=session.access_token;userIdRef.current=session.user?.id??null;void refreshDashboard(false)},[])
   useEffect(()=>{const sync=()=>setLang(localStorage.getItem('taxi-language')==='ht'?'ht':'fr');sync();const timer=window.setInterval(sync,1000);return()=>window.clearInterval(timer)},[])
   useEffect(()=>{if(!online||!userIdRef.current)return;void loadRides(userIdRef.current,true);const timer=window.setInterval(()=>void loadRides(userIdRef.current,true),1000);return()=>window.clearInterval(timer)},[online])
+seEffect(() => {
+  if (!online || !navigator.geolocation) return
+
+  const watchId = navigator.geolocation.watchPosition(
+    (position) => {
+      const { latitude, longitude, heading, speed } = position.coords
+
+      void supabase.rpc('update_driver_live_location', {
+        p_latitude: latitude,
+        p_longitude: longitude,
+        p_heading: heading ?? null,
+        p_speed_kph: speed == null ? null : speed * 3.6,
+      })
+    },
+    () => {},
+    {
+      enableHighAccuracy: true,
+      maximumAge: 3000,
+      timeout: 15000,
+    }
+  )
+
+  return () => navigator.geolocation.clearWatch(watchId)
+}, [online])
   useEffect(()=>{if(!online||activeRide||available.length===0){setOfferRideId(null);setOfferSeconds(20);return}const first=available[0];if(offerRideId!==first.id){timeoutLockRef.current=null;setOfferRideId(first.id);setOfferSeconds(20)}},[online,activeRide,available,offerRideId])
   useEffect(()=>{if(!offerRideId||activeRide||!online)return;if(offerSeconds<=0){const ride=available.find(item=>item.id===offerRideId);if(!ride||timeoutLockRef.current===ride.id)return;timeoutLockRef.current=ride.id;void rideAction('timeout',ride);return}const timer=window.setTimeout(()=>setOfferSeconds(current=>Math.max(0,current-1)),1000);return()=>window.clearTimeout(timer)},[offerRideId,offerSeconds,activeRide,online,available])
 
