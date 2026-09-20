@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const response = await fetch(
-      https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}
+      `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`
     )
 
     if (!response.ok) return []
