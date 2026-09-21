@@ -124,8 +124,8 @@ export async function GET(request: NextRequest) {
     address: query,
     key,
     language: 'fr',
-    region: 'ht',
     
+ region: Number.isFinite(lat) && lat > 24 ? 'us' : 'ht',   
   })
 
   try {
