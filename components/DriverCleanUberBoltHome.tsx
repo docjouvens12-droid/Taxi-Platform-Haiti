@@ -151,25 +151,20 @@ const routeRef=useRef<any>(null)
 
   try{
     const google=await loadGoogleMaps()
-    const directionsService=new google.maps.DirectionsService()
+   const { Route } = await google.maps.importLibrary('routes') as any
 
-    const result=await directionsService.route({
-      origin:{lat:driverPoint[1],lng:driverPoint[0]},
-      destination:{lat:end[1],lng:end[0]},
-      travelMode:google.maps.TravelMode.DRIVING,
-      region:'HT',
-    })
+const { routes } = await Route.computeRoutes({
+  origin:{lat:driverPoint[1],lng:driverPoint[0]},
+  destination:{lat:end[1],lng:end[0]},
+  travelMode:'DRIVING',
+  fields:['path','distanceMeters','durationMillis'],
+})
 
-    const route=result.routes?.[0]
-    const leg=route?.legs?.[0]
+const route=routes?.[0]
+    if(!route)throw new Error('route')
 
-    if(!route||!leg)throw new Error('route')
 
-    const path=
-      route.overview_path?.map((point:any)=>({
-        lat:point.lat(),
-        lng:point.lng(),
-      }))??[]
+     const path=route.path??[]
 
     if(!routeRef.current){
       routeRef.current=new google.maps.Polyline({
@@ -185,8 +180,9 @@ const routeRef=useRef<any>(null)
     }
 
     setRouteInfo({
-      distanceKm:leg.distance?.value!=null?leg.distance.value/1000:metersBetween(driverPoint,end)/1000,
-      durationMin:leg.duration?.value!=null?Math.max(1,Math.round(leg.duration.value/60)):1,
+    distanceKm:route.distanceMeters!=null?route.distanceMeters/1000:metersBetween(driverPoint,end)/1000,
+durationMin:route.durationMillis!=null?Math.max(1,Math.round(route.durationMillis/60000)):1,
+  
       instruction:'',
       phase,
     })
