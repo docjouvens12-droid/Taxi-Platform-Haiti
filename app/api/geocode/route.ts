@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
     key,
     language: 'fr',
     region: 'ht',
-    components: 'country:HT',
+    
   })
 
   try {
