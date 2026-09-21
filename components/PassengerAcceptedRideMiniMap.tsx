@@ -172,7 +172,9 @@ lastRouteAt.current = now
     if (cancelled || !mapEl.current) return
 
     const map = new google.maps.Map(mapEl.current, {
-    center: { lat: 18.5500, lng: -72.3200 },
+    center: tracking && Number.isFinite(Number(tracking.driver_latitude)) && Number.isFinite(Number(tracking.driver_longitude))
+  ? { lat: Number(tracking.driver_latitude), lng: Number(tracking.driver_longitude) }
+  : { lat: 18.5500, lng: -72.3200 },
       zoom: 13,
       mapTypeControl: false,
       streetViewControl: false,

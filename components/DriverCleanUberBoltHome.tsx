@@ -286,7 +286,9 @@ longitude: point[0],
       if(cancelled||!mapEl.current)return
 
       const map=new google.maps.Map(mapEl.current,{
-        center:{lat:18.5392,lng:-72.3364},
+       center:lastPositionRef.current
+  ? {lat:lastPositionRef.current[1],lng:lastPositionRef.current[0]}
+  : {lat:18.5392,lng:-72.3364}, 
         zoom:13,
         mapTypeControl:false,
         streetViewControl:false,
