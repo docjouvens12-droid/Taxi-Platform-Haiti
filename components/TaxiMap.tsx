@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import PassengerLiveMap from './PassengerLiveMap'
 import { supabase } from '../lib/supabase'
 import { usePassengerRide } from './PassengerRideProvider'
-
+import { loadGoogleMaps } from '../lib/google-maps'
 type Point = { lat: number; lng: number }
 type RouteGeometry = { type: 'LineString'; coordinates: number[][] }
 type Lang = 'fr' | 'ht'
@@ -84,46 +84,89 @@ export default function TaxiMap({ pickup, destination, routeGeometry, routeAppro
   }, [ride?.id, trackable])
 
   useEffect(() => {
-    const lat = tracking?.driver_latitude
-    const lng = tracking?.driver_longitude
-    const targetLat = tracking?.ride_status === 'in_progress' ? tracking.destination_latitude : tracking?.pickup_latitude
-    const targetLng = tracking?.ride_status === 'in_progress' ? tracking.destination_longitude : tracking?.pickup_longitude
-    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+  const lat = tracking?.driver_latitude
+  const lng = tracking?.driver_longitude
+  const targetLat = tracking?.ride_status === 'in_progress'
+    ? tracking.destination_latitude
+    : tracking?.pickup_latitude
+  const targetLng = tracking?.ride_status === 'in_progress'
+    ? tracking.destination_longitude
+    : tracking?.pickup_longitude
 
-    const requestId = ++requestRef.current
-    if (lat == null || lng == null || targetLat == null || targetLng == null || !token) {
-      setDriverDistanceKm(null)
-      setDriverEtaMin(null)
-      setDriverRoutePolyline(null)
-      return
-    }
+  const requestId = ++requestRef.current
 
-    const controller = new AbortController()
+  if (lat == null || lng == null || targetLat == null || targetLng == null) {
+    setDriverDistanceKm(null)
+    setDriverEtaMin(null)
+    setDriverRoutePolyline(null)
+    return
+  }
 
-    ;(async () => {
-      try {
-        const coords = `${lng},${lat};${targetLng},${targetLat}`
-        const response = await fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?overview=full&geometries=geojson&steps=false&access_token=${encodeURIComponent(token)}`, { signal: controller.signal })
-        if (!response.ok) throw new Error('Directions unavailable')
-        const json = await response.json()
-        const route = json.routes?.[0]
-        if (controller.signal.aborted || requestId !== requestRef.current) return
-        if (!route || !Number.isFinite(route.distance) || !Number.isFinite(route.duration)) throw new Error('Route unavailable')
-        setDriverDistanceKm(route.distance / 1000)
-        setDriverEtaMin(Math.max(1, Math.round(route.duration / 60)))
-        setDriverRoutePolyline(route.geometry ?? null)
-      } catch {
-        if (!controller.signal.aborted && requestId === requestRef.current) {
-          setDriverDistanceKm(null)
-          setDriverEtaMin(null)
-          setDriverRoutePolyline(null)
-        }
+  let cancelled = false
+
+  ;(async () => {
+    try {
+      const google = await loadGoogleMaps()
+      const directionsService = new google.maps.DirectionsService()
+
+      const result = await directionsService.route({
+        origin: { lat, lng },
+        destination: { lat: targetLat, lng: targetLng },
+        travelMode: google.maps.TravelMode.DRIVING,
+        region: 'HT',
+      })
+
+      if (cancelled || requestId !== requestRef.current) return
+
+      const route = result.routes?.[0]
+      const leg = route?.legs?.[0]
+
+      if (!route || !leg) throw new Error('Route unavailable')
+
+      const coordinates =
+        route.overview_path?.map((point: any) => [
+          point.lng(),
+          point.lat(),
+        ]) ?? []
+
+      setDriverRoutePolyline({
+        type: 'LineString',
+        coordinates,
+      })
+
+      setDriverDistanceKm(
+        leg.distance?.value != null
+          ? leg.distance.value / 1000
+          : null
+      )
+
+      setDriverEtaMin(
+        leg.duration?.value != null
+          ? Math.max(1, Math.round(leg.duration.value / 60))
+          : null
+      )
+    } catch {
+      if (!cancelled && requestId === requestRef.current) {
+        setDriverDistanceKm(null)
+        setDriverEtaMin(null)
+        setDriverRoutePolyline(null)
       }
-    })()
+    }
+  })()
 
-    return () => controller.abort()
-  }, [tracking?.ride_id, tracking?.ride_status, tracking?.driver_latitude, tracking?.driver_longitude, tracking?.pickup_latitude, tracking?.pickup_longitude, tracking?.destination_latitude, tracking?.destination_longitude])
-
+  return () => {
+    cancelled = true
+  }
+}, [
+  tracking?.ride_id,
+  tracking?.ride_status,
+  tracking?.driver_latitude,
+  tracking?.driver_longitude,
+  tracking?.pickup_latitude,
+  tracking?.pickup_longitude,
+  tracking?.destination_latitude,
+  tracking?.destination_longitude,
+])
   const trackingLabel = tracking?.ride_status === 'in_progress'
     ? (lang === 'ht' ? 'Sou wout pou destinasyon' : 'Vers la destination')
     : (lang === 'ht' ? 'Chofè a ap vin pran ou' : 'Votre chauffeur vient vous chercher')

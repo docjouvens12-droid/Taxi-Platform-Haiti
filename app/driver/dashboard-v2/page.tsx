@@ -24,6 +24,30 @@ export default function DriverDashboardV2Page(){
   useEffect(()=>{const session=readSession();if(!session?.access_token){setMessage('Session chauffeur introuvable. Déconnectez-vous puis reconnectez-vous.');return}tokenRef.current=session.access_token;userIdRef.current=session.user?.id??null;void refreshDashboard(false)},[])
   useEffect(()=>{const sync=()=>setLang(localStorage.getItem('taxi-language')==='ht'?'ht':'fr');sync();const timer=window.setInterval(sync,1000);return()=>window.clearInterval(timer)},[])
   useEffect(()=>{if(!online||!userIdRef.current)return;void loadRides(userIdRef.current,true);const timer=window.setInterval(()=>void loadRides(userIdRef.current,true),1000);return()=>window.clearInterval(timer)},[online])
+useEffect(() => {
+  if (!online || !navigator.geolocation) return
+
+  const watchId = navigator.geolocation.watchPosition(
+    (position) => {
+      const { latitude, longitude, heading, speed } = position.coords
+
+      void supabase.rpc('update_driver_live_location', {
+        p_latitude: latitude,
+        p_longitude: longitude,
+        p_heading: heading ?? null,
+        p_speed_kph: speed == null ? null : speed * 3.6,
+      })
+    },
+    () => {},
+    {
+      enableHighAccuracy: true,
+      maximumAge: 3000,
+      timeout: 15000,
+    }
+  )
+
+  return () => navigator.geolocation.clearWatch(watchId)
+}, [online])
   useEffect(()=>{if(!online||activeRide||available.length===0){setOfferRideId(null);setOfferSeconds(20);return}const first=available[0];if(offerRideId!==first.id){timeoutLockRef.current=null;setOfferRideId(first.id);setOfferSeconds(20)}},[online,activeRide,available,offerRideId])
   useEffect(()=>{if(!offerRideId||activeRide||!online)return;if(offerSeconds<=0){const ride=available.find(item=>item.id===offerRideId);if(!ride||timeoutLockRef.current===ride.id)return;timeoutLockRef.current=ride.id;void rideAction('timeout',ride);return}const timer=window.setTimeout(()=>setOfferSeconds(current=>Math.max(0,current-1)),1000);return()=>window.clearTimeout(timer)},[offerRideId,offerSeconds,activeRide,online,available])
 
@@ -31,7 +55,7 @@ export default function DriverDashboardV2Page(){
   async function loadRides(userId=userIdRef.current,isOnline=online){if(!userId)return;try{const{data:mineRows}=await supabase.from('rides').select('*').eq('driver_id',userId).in('status',['accepted','driver_arriving','in_progress']).order('requested_at',{ascending:false}).limit(1);const mine=(mineRows?.[0] as Ride|undefined)??null;setActiveRide(mine);if(!isOnline||mine){setAvailable([]);return}const[{data:requests},{data:rejectedRows}]=await Promise.all([supabase.from('rides').select('*').eq('status','requested').is('driver_id',null).neq('passenger_id',userId).order('requested_at',{ascending:true}).limit(20),supabase.from('driver_ride_rejections').select('ride_id').eq('driver_id',userId)]);const rejected=new Set((rejectedRows??[]).map(row=>row.ride_id));setAvailable(((requests??[]) as Ride[]).filter(ride=>!rejected.has(ride.id)))}catch{}}
   async function refreshDashboard(showBusy=true){if(showBusy)setBusy(true);setMessage('');try{const access=token();if(!access)throw new Error('Session chauffeur introuvable.');const response=await fetch('/api/driver/dashboard',{headers:{Authorization:`Bearer ${access}`},cache:'no-store'});const payload=await response.json();if(!response.ok)throw new Error(payload?.error||`Erreur ${response.status}`);const raw=payload?.driver??payload?.data;const row:DashboardRow|undefined=Array.isArray(raw)?raw[0]:raw;if(!row||row.status!=='approved'){setAuthorized(false);throw new Error('Ce compte n’est pas un chauffeur approuvé.')}setAuthorized(true);setOnline(Boolean(row.is_online));setRating(Number(row.average_rating??0));setTotalRides(Number(row.total_rides??0));if(row.vehicle_id&&row.vehicle_make&&row.vehicle_model&&row.vehicle_plate_number)setVehicle({id:row.vehicle_id,make:row.vehicle_make,model:row.vehicle_model,plate_number:row.vehicle_plate_number,color:row.vehicle_color});else setVehicle(null);await loadRides(userIdRef.current,Boolean(row.is_online))}catch(e){setMessage(e instanceof Error?e.message:'Impossible de charger votre espace chauffeur.')}finally{if(showBusy)setBusy(false)}}
   async function toggleOnline(){if(busy)return;setBusy(true);setMessage('');const next=!online;try{await rpc('set_driver_online',{p_online:next});setOnline(next);setMessage(next?'Vous êtes maintenant en ligne.':'Vous êtes maintenant hors ligne.');await loadRides(userIdRef.current,next)}catch(e){setMessage(e instanceof Error?e.message:'Impossible de modifier votre disponibilité.')}finally{setBusy(false)}}
-  async function rideAction(action:'accept'|'reject'|'timeout'|'arriving'|'start'|'complete',ride:Ride){if(busy&&action!=='timeout')return;if(action==='accept'&&!vehicle){setMessage('Aucun véhicule actif n’est associé à ce compte.');return}if(action!=='timeout')setBusy(true);setMessage('');try{if(action==='accept')await rpc('accept_ride',{p_ride_id:ride.id,p_vehicle_id:vehicle!.id});if(action==='reject')await rpc('reject_ride_request',{p_ride_id:ride.id,p_reason:'rejected'});if(action==='timeout')await rpc('reject_ride_request',{p_ride_id:ride.id,p_reason:'timeout'});if(action==='arriving')await rpc('mark_driver_arriving',{p_ride_id:ride.id});if(action==='start')await rpc('start_ride',{p_ride_id:ride.id});if(action==='complete')await rpc('complete_ride',{p_ride_id:ride.id,p_final_fare_htg:ride.estimated_fare_htg??0,p_payment_method:'cash'});if(action==='timeout')setMessage('Temps écoulé. La demande est proposée à un autre chauffeur.');await refreshDashboard(false)}catch(e){setMessage(e instanceof Error?e.message:'Impossible de mettre à jour le trajet.')}finally{if(action!=='timeout')setBusy(false)}}
+  async function rideAction(action:'accept'|'reject'|'timeout'|'arriving'|'start'|'complete',ride:Ride){if(busy&&action!=='timeout')return;if(action==='accept'&&!vehicle){setMessage('Aucun véhicule actif n’est associé à ce compte.');return}if(action==='accept')timeoutLockRef.current=ride.id;if(action!=='timeout')setBusy(true);setMessage('');try{if(action==='accept')await rpc('accept_ride',{p_ride_id:ride.id,p_vehicle_id:vehicle!.id});if(action==='reject')await rpc('reject_ride_request',{p_ride_id:ride.id,p_reason:'rejected'});if(action==='timeout')await rpc('reject_ride_request',{p_ride_id:ride.id,p_reason:'timeout'});if(action==='arriving')await rpc('mark_driver_arriving',{p_ride_id:ride.id});if(action==='start')await rpc('start_ride',{p_ride_id:ride.id});if(action==='complete')await rpc('complete_ride',{p_ride_id:ride.id,p_final_fare_htg:ride.estimated_fare_htg??0,p_payment_method:'cash'});if(action==='timeout')setMessage('Temps écoulé. La demande est proposée à un autre chauffeur.');await refreshDashboard(false)}catch(e){setMessage(e instanceof Error?e.message:'Impossible de mettre à jour le trajet.')}finally{if(action!=='timeout')setBusy(false)}}
 
   const nextAction=activeRide?.status==='accepted'?{key:'arriving' as const,label:lang==='ht'?'Mwen rive':'Je suis arrivé'}:activeRide?.status==='driver_arriving'?{key:'start' as const,label:lang==='ht'?'Kòmanse trajè a':'Commencer le trajet'}:activeRide?.status==='in_progress'?{key:'complete' as const,label:lang==='ht'?'Fini trajè a':'Terminer le trajet'}:null
   if(!authorized)return <main className="drv2-page"><div className="drv2-shell"><div className="drv2-access"><div className="drv2-logo">M</div><h1>Accès chauffeur</h1><p>{message||'Ce compte n’est pas un chauffeur approuvé.'}</p></div></div></main>

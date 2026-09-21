@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Map as MapboxMap } from 'mapbox-gl'
+import { loadGoogleMaps } from '../lib/google-maps'
 
 export type DriverMapRide={
   id:string
@@ -41,8 +41,12 @@ export default function DriverCleanUberBoltHome({previewRide=null}:{previewRide?
   const [routeInfo,setRouteInfo]=useState<RouteInfo|null>(null)
   const [gpsStatus,setGpsStatus]=useState<'waiting'|'ok'|'error'>('waiting')
   const mapEl=useRef<HTMLDivElement|null>(null)
-  const mapRef=useRef<MapboxMap|null>(null)
+ const mapRef=useRef<any>(null) 
   const watchRef=useRef<number|null>(null)
+  const driverMarkerRef=useRef<any>(null)
+const targetMarkerRef=useRef<any>(null)
+const routeRef=useRef<any>(null)
+  const routeOutlineRef=useRef<any>(null)
   const lastRoutePointRef=useRef<[number,number]|null>(null)
   const lastRouteAtRef=useRef(0)
   const lastPositionRef=useRef<[number,number]|null>(null)
@@ -76,129 +80,277 @@ export default function DriverCleanUberBoltHome({previewRide=null}:{previewRide?
     return()=>{cancelled=true;window.clearInterval(timer)}
   },[])
 
-  function updatePointLayers(driverPoint:[number,number],target:[number,number],phase:'pickup'|'destination'){
-    const map=mapRef.current
-    if(!map||!map.isStyleLoaded())return
-    const data={
-      type:'FeatureCollection' as const,
-      features:[
-        {type:'Feature' as const,properties:{role:'driver'},geometry:{type:'Point' as const,coordinates:driverPoint}},
-        {type:'Feature' as const,properties:{role:'target',phase},geometry:{type:'Point' as const,coordinates:target}},
-      ]
-    }
-    const source=map.getSource('driver-live-points') as GeoSource|undefined
-    if(source?.setData)source.setData(data)
-    else{
-      map.addSource('driver-live-points',{type:'geojson',data})
-      map.addLayer({id:'driver-live-target-halo',type:'circle',source:'driver-live-points',filter:['==',['get','role'],'target'],paint:{'circle-radius':16,'circle-color':'#ffffff','circle-opacity':.96}})
-      map.addLayer({id:'driver-live-target',type:'circle',source:'driver-live-points',filter:['==',['get','role'],'target'],paint:{'circle-radius':10,'circle-color':['case',['==',['get','phase'],'destination'],'#ef4444','#16a34a'],'circle-stroke-width':3,'circle-stroke-color':'#ffffff'}})
-      map.addLayer({id:'driver-live-driver-halo',type:'circle',source:'driver-live-points',filter:['==',['get','role'],'driver'],paint:{'circle-radius':20,'circle-color':'#ffffff','circle-opacity':.98,'circle-stroke-width':3,'circle-stroke-color':'#111827'}})
-      map.addLayer({id:'driver-live-driver',type:'circle',source:'driver-live-points',filter:['==',['get','role'],'driver'],paint:{'circle-radius':11,'circle-color':'#2563eb','circle-stroke-width':2,'circle-stroke-color':'#ffffff'}})
-    }
+ function updatePointLayers(
+  driverPoint: [number, number],
+  target: [number, number],
+  phase: 'pickup' | 'destination'
+) {
+  const map = mapRef.current
+  const google = (window as any).google
+
+  if (!map || !google?.maps) return
+
+  const driverPosition = {
+    lat: driverPoint[1],
+    lng: driverPoint[0],
   }
 
-  async function drawRoute(driverPoint:[number,number],ride:DriverMapRide,force=false){
-    const map=mapRef.current,token=process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-    if(!map||!token)return
-    if(!map.isStyleLoaded()){
-      map.once('load',()=>void drawRoute(driverPoint,ride,true))
-      return
-    }
-    const now=Date.now(),moved=lastRoutePointRef.current?metersBetween(lastRoutePointRef.current,driverPoint):Infinity
-    if(!force&&moved<5&&now-lastRouteAtRef.current<2500)return
-    lastRoutePointRef.current=driverPoint;lastRouteAtRef.current=now
-    const phase:RouteInfo['phase']=ride.status==='in_progress'?'destination':'pickup'
-    const end:[number,number]=phase==='pickup'?[Number(ride.pickup_longitude),Number(ride.pickup_latitude)]:[Number(ride.destination_longitude),Number(ride.destination_latitude)]
-    if(!Number.isFinite(end[0])||!Number.isFinite(end[1]))return
-    updatePointLayers(driverPoint,end,phase)
-    try{
-      const url=`https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${driverPoint[0]},${driverPoint[1]};${end[0]},${end[1]}?alternatives=false&geometries=geojson&overview=full&steps=true&language=fr&access_token=${encodeURIComponent(token)}`
-      const response=await fetch(url,{cache:'no-store'});if(!response.ok)throw new Error('route')
-      const route=(await response.json() as RouteResponse).routes?.[0];if(!route)return
-      const geojson={type:'Feature' as const,properties:{},geometry:route.geometry}
-      const source=map.getSource('driver-live-route') as GeoSource|undefined
-      if(source?.setData)source.setData(geojson)
-      else{
-        map.addSource('driver-live-route',{type:'geojson',data:geojson})
-        map.addLayer({id:'driver-live-route-line',type:'line',source:'driver-live-route',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#111827','line-width':8,'line-opacity':.96}})
-        ;['driver-live-target-halo','driver-live-target','driver-live-driver-halo','driver-live-driver'].forEach(id=>{if(map.getLayer(id))map.moveLayer(id)})
-      }
-      const instruction=route.legs?.[0]?.steps?.find(step=>step.maneuver?.instruction)?.maneuver?.instruction||''
-      setRouteInfo({distanceKm:route.distance/1000,durationMin:Math.max(1,Math.round(route.duration/60)),instruction,phase})
-      const directDistance=metersBetween(driverPoint,end)
-      if(directDistance<80){
-        const center:[number,number]=[(driverPoint[0]+end[0])/2,(driverPoint[1]+end[1])/2]
-        map.easeTo({center,zoom:17,padding:{top:115,bottom:390,left:70,right:70},duration:450})
-      }else{
-        const coords=route.geometry.coordinates
-        if(coords.length>1){
-          const mod=await import('mapbox-gl')
-          const bounds=coords.reduce((b,c)=>b.extend(c),new mod.default.LngLatBounds(coords[0],coords[0]))
-          map.fitBounds(bounds,{padding:{top:120,bottom:400,left:58,right:58},duration:500,maxZoom:16.5})
-        }
-      }
-      window.setTimeout(()=>{
-        updatePointLayers(driverPoint,end,phase)
-        ;['driver-live-target-halo','driver-live-target','driver-live-driver-halo','driver-live-driver'].forEach(id=>{if(map.getLayer(id))map.moveLayer(id)})
-      },80)
-    }catch{
-      setRouteInfo({distanceKm:metersBetween(driverPoint,end)/1000,durationMin:1,instruction:'',phase})
-      updatePointLayers(driverPoint,end,phase)
-    }
+  const targetPosition = {
+    lat: target[1],
+    lng: target[0],
   }
 
+  if (!driverMarkerRef.current) {
+    driverMarkerRef.current = new google.maps.Marker({
+      map,
+      position: driverPosition,
+      title: 'Chauffeur',
+    icon:{
+  path:google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+  scale:7,
+  fillColor:'#2563EB',
+  fillOpacity:1,
+  strokeColor:'#FFFFFF',
+  strokeWeight:2,
+  rotation:0,
+}, 
+    })
+  } else {
+    driverMarkerRef.current.setPosition(driverPosition)
+    driverMarkerRef.current.setMap(map)
+  }
+
+  if (!targetMarkerRef.current) {
+    targetMarkerRef.current = new google.maps.Marker({
+      map,
+      position: targetPosition,
+      title: phase === 'pickup' ? 'Passager' : 'Destination',
+    })
+  } else {
+    targetMarkerRef.current.setPosition(targetPosition)
+    targetMarkerRef.current.setMap(map)
+  }
+}
+ async function drawRoute(driverPoint:[number,number],ride:DriverMapRide,force=false){
+  const map=mapRef.current
+  if(!map)return
+
+  const now=Date.now()
+  const moved=lastRoutePointRef.current
+    ? metersBetween(lastRoutePointRef.current,driverPoint)
+    : Infinity
+
+  if(!force&&moved<5&&now-lastRouteAtRef.current<2500)return
+
+  lastRoutePointRef.current=driverPoint
+  lastRouteAtRef.current=now
+
+  const phase:RouteInfo['phase']=ride.status==='in_progress'?'destination':'pickup'
+
+  const end:[number,number]=phase==='pickup'
+    ? [Number(ride.pickup_longitude),Number(ride.pickup_latitude)]
+    : [Number(ride.destination_longitude),Number(ride.destination_latitude)]
+
+  if(!Number.isFinite(end[0])||!Number.isFinite(end[1]))return
+
+  updatePointLayers(driverPoint,end,phase)
+
+  try{
+    const google=await loadGoogleMaps()
+   const { Route } = await google.maps.importLibrary('routes') as any
+
+const { routes } = await Route.computeRoutes({
+  origin:{lat:driverPoint[1],lng:driverPoint[0]},
+  destination:{lat:end[1],lng:end[0]},
+  travelMode:'DRIVING',
+  fields:['path','distanceMeters','durationMillis','legs'],
+})
+
+const route=routes?.[0]
+    const nextStep=route?.legs?.[0]?.steps?.[0]
+    if(!route)throw new Error('route')
+
+
+     const path=route.path??[]
+if(!routeOutlineRef.current){
+  routeOutlineRef.current=new google.maps.Polyline({
+    map,
+    path,
+    strokeColor:'#FFFFFF',
+    strokeOpacity:1,
+    strokeWeight:11,
+  })
+}else{
+  routeOutlineRef.current.setPath(path)
+  routeOutlineRef.current.setMap(map)
+}
+    if(!routeRef.current){
+      routeRef.current=new google.maps.Polyline({
+        map,
+        path,
+      strokeColor:'#4285F4',
+strokeOpacity:1,
+strokeWeight:6,
+      })
+    }else{
+      routeRef.current.setPath(path)
+      routeRef.current.setMap(map)
+    }
+
+    setRouteInfo({
+    distanceKm:route.distanceMeters!=null?route.distanceMeters/1000:metersBetween(driverPoint,end)/1000,
+durationMin:route.durationMillis!=null?Math.max(1,Math.round(route.durationMillis/60000)):1,
+  
+      instruction:nextStep?.instructions||'',
+      phase,
+    })
+
+    const bounds=new google.maps.LatLngBounds()
+    bounds.extend({lat:driverPoint[1],lng:driverPoint[0]})
+    bounds.extend({lat:end[1],lng:end[0]})
+    path.forEach((point:any)=>bounds.extend(point))
+
+    map.fitBounds(bounds,80)
+  }catch{
+    setRouteInfo({
+      distanceKm:metersBetween(driverPoint,end)/1000,
+      durationMin:1,
+      instruction:'',
+      phase,
+    })
+  }
+}
   async function applyPosition(pos:GeolocationPosition){
-    const map=mapRef.current,ride=rideRef.current
-    if(!map)return
-    setGpsStatus('ok')
-    const point:[number,number]=[pos.coords.longitude,pos.coords.latitude]
-    lastPositionRef.current=point
-    const user=(await supabase.auth.getUser()).data.user
-    if(user)void supabase.from('driver_locations').upsert({driver_id:user.id,latitude:pos.coords.latitude,longitude:pos.coords.longitude,heading:Number.isFinite(pos.coords.heading)?pos.coords.heading:null,speed_kph:Number.isFinite(pos.coords.speed)?Math.max(0,(pos.coords.speed||0)*3.6):null,updated_at:new Date().toISOString()},{onConflict:'driver_id'})
-    if(ride)void drawRoute(point,ride,true)
-    else{
-      setRouteInfo(null)
-      if(map.getLayer('driver-live-driver'))map.removeLayer('driver-live-driver')
-      if(map.getLayer('driver-live-driver-halo'))map.removeLayer('driver-live-driver-halo')
-      if(map.getLayer('driver-live-target'))map.removeLayer('driver-live-target')
-      if(map.getLayer('driver-live-target-halo'))map.removeLayer('driver-live-target-halo')
-      if(map.getSource('driver-live-points'))map.removeSource('driver-live-points')
-      if(map.getLayer('driver-live-route-line'))map.removeLayer('driver-live-route-line')
-      if(map.getSource('driver-live-route'))map.removeSource('driver-live-route')
-      map.easeTo({center:point,zoom:14,duration:500})
-    }
+  const map=mapRef.current
+  const ride=rideRef.current
+
+  if(!map)return
+
+  setGpsStatus('ok')
+
+const point:[number,number]=[
+  pos.coords.longitude,
+  pos.coords.latitude,
+] 
+
+  lastPositionRef.current=point
+
+  const user=(await supabase.auth.getUser()).data.user
+
+  if(user){
+    void supabase.from('driver_locations').upsert({
+  driver_id: user.id,   
+    latitude: point[1],  
+longitude: point[0],
+    
+      heading:Number.isFinite(pos.coords.heading)?pos.coords.heading:null,
+      speed_kph:Number.isFinite(pos.coords.speed)
+        ? Math.max(0,(pos.coords.speed||0)*3.6)
+        : null,
+      updated_at:new Date().toISOString(),
+    },{
+      onConflict:'driver_id'
+    })
   }
+
+  if(ride){
+    void drawRoute(point,ride,true)
+  }else{
+    setRouteInfo(null)
+
+    driverMarkerRef.current?.setPosition?.({
+      lat:point[1],
+      lng:point[0],
+    })
+    driverMarkerRef.current?.setMap?.(map)
+
+    targetMarkerRef.current?.setMap?.(null)
+    routeRef.current?.setMap?.(null)
+
+    map.setCenter({
+      lat:point[1],
+      lng:point[0],
+    })
+    map.setZoom(14)
+  }
+}
 
   useEffect(()=>{
-    if(!mapEl.current||mapRef.current)return
-    const token=process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-    if(!token){setMapFailed(true);return}
-    let cancelled=false
-    ;(async()=>{
-      try{
-        const mod=await import('mapbox-gl');if(cancelled||!mapEl.current)return
-        mod.default.accessToken=token
-        const map=new mod.default.Map({container:mapEl.current,style:'mapbox://styles/mapbox/streets-v12',center:[-72.6843,19.4475],zoom:13,attributionControl:false})
-        map.addControl(new mod.default.NavigationControl({showCompass:false}),'bottom-right');mapRef.current=map
-        map.on('load',()=>{
-          map.resize()
-          const point=lastPositionRef.current,ride=rideRef.current
-          if(point&&ride)void drawRoute(point,ride,true)
-        })
-        if(navigator.geolocation){
-          watchRef.current=navigator.geolocation.watchPosition(pos=>void applyPosition(pos),()=>setGpsStatus('error'),{enableHighAccuracy:true,maximumAge:500,timeout:15000})
-        }else setGpsStatus('error')
-      }catch{if(!cancelled)setMapFailed(true)}
-    })()
-    return()=>{cancelled=true;if(watchRef.current!==null&&navigator.geolocation)navigator.geolocation.clearWatch(watchRef.current);mapRef.current?.remove();mapRef.current=null}
-  },[])
+  if(!mapEl.current||mapRef.current)return
 
+  let cancelled=false
+
+  ;(async()=>{
+    try{
+      const google=await loadGoogleMaps()
+      if(cancelled||!mapEl.current)return
+
+      const map=new google.maps.Map(mapEl.current,{
+        center:{lat:18.5392,lng:-72.3364},
+        zoom:13,
+        mapTypeControl:false,
+        streetViewControl:false,
+        fullscreenControl:false,
+        clickableIcons:false,
+      })
+
+      mapRef.current=map
+      setMapFailed(false)
+
+const point=lastPositionRef.current
+const ride=rideRef.current
+
+if(point){
+  driverMarkerRef.current=new google.maps.Marker({
+    map,
+    position:{lat:point[1],lng:point[0]},
+    title:'Chauffeur',
+    label:{
+      text:'🚕',
+      fontSize:'24px',
+    },
+  })
+
+  if(ride)void drawRoute(point,ride,true)
+}
+ if(navigator.geolocation){
+  watchRef.current=navigator.geolocation.watchPosition(
+    pos=>void applyPosition(pos),
+    ()=>setGpsStatus('error'),
+    {
+      enableHighAccuracy:true,
+      maximumAge:500,
+      timeout:15000,
+    }
+  )
+}else{
+  setGpsStatus('error')
+}   
+   }catch{
+      if(!cancelled)setMapFailed(true)
+    }
+  })()
+
+  return()=>{
+    cancelled=true
+
+    if(watchRef.current!==null&&navigator.geolocation){
+      navigator.geolocation.clearWatch(watchRef.current)
+    }
+
+    driverMarkerRef.current?.setMap?.(null)
+    targetMarkerRef.current?.setMap?.(null)
+    routeRef.current?.setMap?.(null)
+
+    mapRef.current=null
+  }
+},[])   
   useEffect(()=>{
     if(!effectiveRide||!navigator.geolocation)return
     setGpsStatus('waiting')
     const refresh=()=>navigator.geolocation.getCurrentPosition(pos=>void applyPosition(pos),()=>setGpsStatus('error'),{enableHighAccuracy:true,maximumAge:0,timeout:12000})
-    const map=mapRef.current
-    if(map)window.setTimeout(()=>map.resize(),60)
+  
+    
     refresh()
     const timer=window.setInterval(refresh,2500)
     return()=>window.clearInterval(timer)

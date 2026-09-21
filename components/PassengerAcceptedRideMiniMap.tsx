@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { usePassengerRide } from './PassengerRideProvider'
-import type { Map as MapboxMap, Marker as MapboxMarker } from 'mapbox-gl'
+import { loadGoogleMaps } from '../lib/google-maps'
 
 type Tracking = {
   ride_id: string
@@ -19,7 +19,7 @@ type Tracking = {
 }
 
 type RouteMetrics = { distanceKm: number; minutes: number }
-type RouteResponse = { routes?: Array<{ distance:number; duration:number; geometry:{coordinates:[number,number][];type:'LineString'} }> }
+
 
 export default function PassengerAcceptedRideMiniMap() {
   const { ride } = usePassengerRide()
@@ -31,9 +31,9 @@ export default function PassengerAcceptedRideMiniMap() {
   const [ht, setHt] = useState(false)
   const [target, setTarget] = useState<HTMLElement | null>(null)
   const mapEl = useRef<HTMLDivElement | null>(null)
-  const mapRef = useRef<MapboxMap | null>(null)
-  const driverMarkerRef = useRef<MapboxMarker | null>(null)
-  const endMarkerRef = useRef<MapboxMarker | null>(null)
+  const mapRef = useRef<any>(null)
+const driverMarkerRef = useRef<any>(null)
+const endMarkerRef = useRef<any>(null)
   const lastTrackingRef = useRef<Tracking | null>(null)
   const lastRouteAt = useRef(0)
 
@@ -72,81 +72,135 @@ export default function PassengerAcceptedRideMiniMap() {
     const targetLng = Number(row.ride_status === 'in_progress' ? row.destination_longitude : row.pickup_longitude)
     if (![dLat,dLng,targetLat,targetLng].every(Number.isFinite)) return
 
-    const mod = await import('mapbox-gl')
-    if (mapRef.current !== map || lastTrackingRef.current?.ride_id !== row.ride_id || lastTrackingRef.current?.ride_status !== row.ride_status) return
+   const google = await loadGoogleMaps() 
+    if (mapRef.current !== map) return
     const driverPoint:[number,number] = [dLng,dLat]
     const endPoint:[number,number] = [targetLng,targetLat]
 
-    if (!driverMarkerRef.current) {
-      const el = document.createElement('div')
-      el.className = 'passenger-driver-car-marker'
-      el.textContent = '🚕'
-      driverMarkerRef.current = new mod.default.Marker({ element: el, anchor: 'center' }).setLngLat(driverPoint).addTo(map)
-    } else driverMarkerRef.current.setLngLat(driverPoint)
+    
+if (!driverMarkerRef.current) {
+  driverMarkerRef.current = new google.maps.Marker({
+    map,
+    position: { lat: dLat, lng: dLng },
+    title: 'Chauffeur',
+    icon: {
+      path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+      scale: 6,
+      fillColor: '#2563EB',
+      fillOpacity: 1,
+      strokeColor: '#FFFFFF',
+      strokeWeight: 2,
+    },
+  })
+} else {
+  driverMarkerRef.current.setPosition({ lat: dLat, lng: dLng })
+  driverMarkerRef.current.setMap(map)
+}
+   if (!endMarkerRef.current) {
+  endMarkerRef.current = new google.maps.Marker({
+    map,
+    position: { lat: targetLat, lng: targetLng },
+    title: row.ride_status === 'in_progress' ? 'Destination' : 'Prise en charge',
+  })
+} else {
+  endMarkerRef.current.setPosition({ lat: targetLat, lng: targetLng })
+  endMarkerRef.current.setMap(map)
+}
 
-    if (!endMarkerRef.current) {
-      const el = document.createElement('div')
-      el.className = 'passenger-arrival-marker'
-      el.innerHTML = '<span></span>'
-      endMarkerRef.current = new mod.default.Marker({ element: el, anchor: 'bottom' }).setLngLat(endPoint).addTo(map)
-    } else endMarkerRef.current.setLngLat(endPoint)
+   const now = Date.now()
+if (now - lastRouteAt.current < 3000) return
+lastRouteAt.current = now
 
-    const now = Date.now()
-    if (now - lastRouteAt.current < 3000 && map.getSource('passenger-live-route')) return
-    lastRouteAt.current = now
+   try {
+  const { Route } = await google.maps.importLibrary('routes') as any
+  const { routes } = await Route.computeRoutes({
+    origin: { lat: dLat, lng: dLng },
+    destination: { lat: targetLat, lng: targetLng },
+    travelMode: 'DRIVING',
+    fields: ['path', 'distanceMeters', 'durationMillis'],
+  })
 
-    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-    if (!token) return
-    try {
-      const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${dLng},${dLat};${targetLng},${targetLat}?overview=full&geometries=geojson&steps=false&access_token=${encodeURIComponent(token)}`
-      const response = await fetch(url, { cache:'no-store' })
-      if (!response.ok) return
-      const route = ((await response.json()) as RouteResponse).routes?.[0]
-      if (!route || mapRef.current !== map || lastTrackingRef.current?.ride_id !== row.ride_id || lastTrackingRef.current?.ride_status !== row.ride_status) return
-      setMetrics({ distanceKm: route.distance/1000, minutes: Math.max(1, Math.ceil(route.duration/60)) })
-      const geojson = { type:'Feature' as const, properties:{}, geometry:route.geometry }
-      const source = map.getSource('passenger-live-route') as { setData?:(data:unknown)=>void } | undefined
-      if (source?.setData) source.setData(geojson)
-      else {
-        map.addSource('passenger-live-route', { type:'geojson', data:geojson })
-        map.addLayer({ id:'passenger-live-route-casing', type:'line', source:'passenger-live-route', layout:{'line-cap':'round','line-join':'round'}, paint:{'line-color':'#ffffff','line-width':9,'line-opacity':.95} })
-        map.addLayer({ id:'passenger-live-route-line', type:'line', source:'passenger-live-route', layout:{'line-cap':'round','line-join':'round'}, paint:{'line-color':'#087a5d','line-width':5.5,'line-opacity':1} })
-      }
-      const coords = route.geometry.coordinates
-      if (coords.length > 1) {
-        const bounds = coords.reduce((b,c)=>b.extend(c), new mod.default.LngLatBounds(coords[0],coords[0]))
-        map.fitBounds(bounds,{padding:{top:58,bottom:44,left:56,right:56},duration:450,maxZoom:16.5})
-      }
+  const route = routes?.[0]
+  if (!route) return
+
+  setMetrics({
+    distanceKm: route.distanceMeters != null ? route.distanceMeters / 1000 : 0,
+    minutes: route.durationMillis != null ? Math.max(1, Math.ceil(route.durationMillis / 60000)) : 1,
+  })
+
+  const path = route.path ?? []
+
+  if (!(map as any).__passengerRouteOutline) {
+    ;(map as any).__passengerRouteOutline = new google.maps.Polyline({
+      map,
+      path,
+      strokeColor: '#FFFFFF',
+      strokeOpacity: 1,
+      strokeWeight: 9,
+    })
+  } else {
+    ;(map as any).__passengerRouteOutline.setPath(path)
+  }
+
+  if (!(map as any).__passengerRouteLine) {
+    ;(map as any).__passengerRouteLine = new google.maps.Polyline({
+      map,
+      path,
+      strokeColor: '#4285F4',
+      strokeOpacity: 1,
+      strokeWeight: 5,
+    })
+  } else {
+    ;(map as any).__passengerRouteLine.setPath(path)
+  }
+
+  const bounds = new google.maps.LatLngBounds()
+  bounds.extend({ lat: dLat, lng: dLng })
+  bounds.extend({ lat: targetLat, lng: targetLng })
+  path.forEach((point:any) => bounds.extend(point))
+  map.fitBounds(bounds, 60)
     } catch {}
   }
 
   useEffect(() => {
-    if (!mapVisible || !target || !mapEl.current || mapRef.current) return
-    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-    if (!token) return
-    let cancelled = false
-    ;(async()=>{
-      const mod = await import('mapbox-gl')
-      if (cancelled || !mapEl.current) return
-      mod.default.accessToken = token
-      const map = new mod.default.Map({ container:mapEl.current, style:'mapbox://styles/mapbox/streets-v12', center:[-72.6843,19.4475], zoom:13, attributionControl:false })
-      mapRef.current = map
-      map.on('load',()=>{
-        map.resize()
-        const row = lastTrackingRef.current
-        if (row) void renderTracking(row)
-      })
-    })()
-    return ()=>{ cancelled=true; driverMarkerRef.current?.remove(); endMarkerRef.current?.remove(); driverMarkerRef.current=null; endMarkerRef.current=null; mapRef.current?.remove(); mapRef.current=null; lastRouteAt.current=0 }
-  },[target, mapVisible])
+  if (!mapVisible || !target || !mapEl.current || mapRef.current) return
+
+  let cancelled = false
+
+  ;(async () => {
+    const google = await loadGoogleMaps()
+    if (cancelled || !mapEl.current) return
+
+    const map = new google.maps.Map(mapEl.current, {
+    center: { lat: 18.5500, lng: -72.3200 },
+      zoom: 13,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false,
+      clickableIcons: false,
+    })
+
+    mapRef.current = map
+
+ if (tracking) void renderTracking(tracking)   
+  })()
+
+  return () => {
+    cancelled = true
+    driverMarkerRef.current?.setMap?.(null)
+    endMarkerRef.current?.setMap?.(null)
+    driverMarkerRef.current = null
+    endMarkerRef.current = null
+    mapRef.current = null
+    lastRouteAt.current = 0
+  }
+}, [target, mapVisible])
 
   useEffect(() => {
-    if (!tracking) return
-    const map = mapRef.current
-    if (!map) return
-    if (!map.isStyleLoaded()) { map.once('load',()=>void renderTracking(tracking)); return }
-    void renderTracking(tracking)
-  }, [tracking])
+  if (!tracking) return
+  if (!mapRef.current) return
+  void renderTracking(tracking)
+}, [tracking])
 
   if (!tracking || !target || !document.contains(target)) return null
   const inProgress = tracking.ride_status === 'in_progress'

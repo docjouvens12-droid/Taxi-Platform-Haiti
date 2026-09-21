@@ -19,7 +19,7 @@ export function isHaitiPoint(point: Point) {
 }
 
 export function destinationReady(value: Destination | null): value is Destination {
-  return !!value && isHaitiPoint({ lat: value.latitude, lng: value.longitude }) &&
+  return !!value &&
     !!value.placeName.trim() && !!value.formattedAddress.trim() &&
     (value.confirmationState === 'map_confirmed' ||
       (value.confirmationState === 'exact_place' && isExactPlaceType(value.placeType)))
