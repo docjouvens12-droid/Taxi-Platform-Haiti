@@ -105,10 +105,15 @@ const routeRef=useRef<any>(null)
       map,
       position: driverPosition,
       title: 'Chauffeur',
-      label: {
-        text: '🚕',
-        fontSize: '24px',
-      },
+    icon:{
+  path:google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+  scale:7,
+  fillColor:'#2563EB',
+  fillOpacity:1,
+  strokeColor:'#FFFFFF',
+  strokeWeight:2,
+  rotation:0,
+}, 
     })
   } else {
     driverMarkerRef.current.setPosition(driverPosition)
