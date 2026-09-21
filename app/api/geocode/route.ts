@@ -221,7 +221,8 @@ export async function GET(request: NextRequest) {
     // or house number entered by the passenger.
     const providerQuery = q.replace(/\bpetioin[\s-]+ville\b/gi, 'Pétion-Ville')
     const variants = buildAddressVariants(providerQuery)
-    batches.push(...await Promise.all(variants.map(variant => searchMapboxV6(variant, true))))
+    if (Number.isFinite(lat) && lat > 24) batches.push(await searchGoogleGeocoding(providerQuery))
+else batches.push(...await Promise.all(variants.map(variant => searchMapboxV6(variant, true))))
 
     let hasPrecise = batches.some(batch => batch.some(result => PRECISE_TYPES.has(result.featureType || '')))
     if (!hasPrecise) {
