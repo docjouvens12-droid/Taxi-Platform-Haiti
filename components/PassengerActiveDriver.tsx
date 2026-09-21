@@ -190,7 +190,7 @@ if (!showDriverCard) {
     <button
       type="button"
       onClick={() => setShowDriverCard(true)}
-      style={{
+      style={{>
   position: 'fixed',
 bottom: '92px',
 left: '50%',
@@ -206,7 +206,7 @@ color: '#fff',
 fontSize: '15px',
 fontWeight: 800,
 boxShadow: '0 10px 24px rgba(16,32,51,.18)',
-    >
+      }} >
       {lang === 'ht' ? 'Wè chofè a' : 'Voir le chauffeur'}
     </button>
   )
