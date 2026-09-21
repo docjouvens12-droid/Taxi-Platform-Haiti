@@ -182,8 +182,7 @@ lastRouteAt.current = now
 
     mapRef.current = map
 
-    const row = lastTrackingRef.current
-    if (row) void renderTracking(row)
+ if (tracking) void renderTracking(tracking)   
   })()
 
   return () => {
