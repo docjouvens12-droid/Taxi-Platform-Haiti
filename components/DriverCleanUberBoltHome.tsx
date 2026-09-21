@@ -46,6 +46,7 @@ export default function DriverCleanUberBoltHome({previewRide=null}:{previewRide?
   const driverMarkerRef=useRef<any>(null)
 const targetMarkerRef=useRef<any>(null)
 const routeRef=useRef<any>(null)
+  const routeOutlineRef=useRef<any>(null)
   const lastRoutePointRef=useRef<[number,number]|null>(null)
   const lastRouteAtRef=useRef(0)
   const lastPositionRef=useRef<[number,number]|null>(null)
@@ -165,14 +166,25 @@ const route=routes?.[0]
 
 
      const path=route.path??[]
-
+if(!routeOutlineRef.current){
+  routeOutlineRef.current=new google.maps.Polyline({
+    map,
+    path,
+    strokeColor:'#FFFFFF',
+    strokeOpacity:1,
+    strokeWeight:11,
+  })
+}else{
+  routeOutlineRef.current.setPath(path)
+  routeOutlineRef.current.setMap(map)
+}
     if(!routeRef.current){
       routeRef.current=new google.maps.Polyline({
         map,
         path,
-        strokeColor:'#111827',
-        strokeOpacity:.96,
-        strokeWeight:7,
+      strokeColor:'#4285F4',
+strokeOpacity:1,
+strokeWeight:6,
       })
     }else{
       routeRef.current.setPath(path)
