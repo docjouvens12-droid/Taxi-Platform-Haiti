@@ -171,7 +171,7 @@ export default function HomePage() {
        setPickup(copy[lang].current)
         setPickupStatus('ready')
       },
-      () => { setPickupStatus('error') },
+      () => { setPickupStatus('unavailable') },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
   }, [lang])
