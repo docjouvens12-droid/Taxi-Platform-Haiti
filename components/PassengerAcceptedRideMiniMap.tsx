@@ -73,7 +73,7 @@ const endMarkerRef = useRef<any>(null)
     if (![dLat,dLng,targetLat,targetLng].every(Number.isFinite)) return
 
    const google = await loadGoogleMaps() 
-    if (mapRef.current !== map || lastTrackingRef.current?.ride_id !== row.ride_id || lastTrackingRef.current?.ride_status !== row.ride_status) return
+    if (mapRef.current !== map) return
     const driverPoint:[number,number] = [dLng,dLat]
     const endPoint:[number,number] = [targetLng,targetLat]
 
