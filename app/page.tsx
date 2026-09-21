@@ -387,7 +387,7 @@ useEffect(() => {
 
   function chooseSearchResult(result: SearchResult) {
     const coords = { lng: result.center[0], lat: result.center[1] }
-    if (!isHaitiPoint(coords)) return
+    
     const candidate = destinationFromResult(result)
     setQuote(null); setRouteGeometry(null); setRouteDistanceKm(null); setRouteDurationMin(null)
     candidate.confirmationState = 'map_confirmed'
