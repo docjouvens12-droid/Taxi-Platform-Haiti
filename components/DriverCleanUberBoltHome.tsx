@@ -239,7 +239,8 @@ durationMin:route.durationMillis!=null?Math.max(1,Math.round(route.durationMilli
 
   if(user){
     void supabase.from('driver_locations').upsert({
-     latitude: point[1],
+  driver_id: user.id,   
+    latitude: point[1],  
 longitude: point[0],
     
       heading:Number.isFinite(pos.coords.heading)?pos.coords.heading:null,
