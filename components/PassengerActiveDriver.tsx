@@ -192,17 +192,20 @@ if (!showDriverCard) {
       onClick={() => setShowDriverCard(true)}
       style={{
   position: 'fixed',
-  bottom: '90px',
-  left: '50%',
-  transform: 'translateX(-50%)',
-  zIndex: 12050,
-  padding: '12px 20px',
-  borderRadius: '999px',
-  border: 'none',
-  background: '#102033',
-  color: '#fff',
-  fontWeight: 800,
-}}
+bottom: '92px',
+left: '50%',
+transform: 'translateX(-50%)',
+zIndex: 12050,
+minWidth: '220px',
+height: '52px',
+padding: '0 24px',
+borderRadius: '16px',
+border: '1px solid #dce6f3',
+background: '#102033',
+color: '#fff',
+fontSize: '15px',
+fontWeight: 800,
+boxShadow: '0 10px 24px rgba(16,32,51,.18)',
     >
       {lang === 'ht' ? 'Wè chofè a' : 'Voir le chauffeur'}
     </button>
