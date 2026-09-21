@@ -431,7 +431,7 @@ setDestination(result.label + '\n' + streetLine)
     let requestPickup: Point
     try {
       requestPickup = await freshPassengerPosition()
-      if (!isHaitiPoint(requestPickup)) requestPickup = haitiTestPickup
+      
       setPickupCoords(requestPickup)
       setPickupStatus('ready')
       setPickup(copy[lang].current)
