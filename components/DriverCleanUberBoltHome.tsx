@@ -228,9 +228,9 @@ durationMin:route.durationMillis!=null?Math.max(1,Math.round(route.durationMilli
 
   setGpsStatus('ok')
 
- const point:[number,number]=[
-  -72.3200,
-  18.5500,
+const point:[number,number]=[
+  pos.coords.longitude,
+  pos.coords.latitude,
 ] 
 
   lastPositionRef.current=point
