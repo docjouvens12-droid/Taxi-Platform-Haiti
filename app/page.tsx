@@ -221,9 +221,8 @@ export default function HomePage() {
 useEffect(() => {
   if (
     !pickupCoords ||
-    !effectiveDestinationCoords ||
-    !isHaitiPoint(pickupCoords) ||
-    !isHaitiPoint(effectiveDestinationCoords)
+    !effectiveDestinationCoords 
+    
   ) {
     setRouteGeometry(null)
     setRouteApproximate(false)
