@@ -163,10 +163,11 @@ const { routes } = await Route.computeRoutes({
   origin:{lat:driverPoint[1],lng:driverPoint[0]},
   destination:{lat:end[1],lng:end[0]},
   travelMode:'DRIVING',
-  fields:['path','distanceMeters','durationMillis'],
+  fields:['path','distanceMeters','durationMillis','legs'],
 })
 
 const route=routes?.[0]
+    const nextStep=route?.legs?.[0]?.steps?.[0]
     if(!route)throw new Error('route')
 
 
@@ -200,7 +201,7 @@ strokeWeight:6,
     distanceKm:route.distanceMeters!=null?route.distanceMeters/1000:metersBetween(driverPoint,end)/1000,
 durationMin:route.durationMillis!=null?Math.max(1,Math.round(route.durationMillis/60000)):1,
   
-      instruction:'',
+      instruction:nextStep?.instructions||'',
       phase,
     })
 
