@@ -190,7 +190,7 @@ if (!showDriverCard) {
     <button
       type="button"
       onClick={() => setShowDriverCard(true)}
-      style={{>
+      style={{
   position: 'fixed',
 bottom: '92px',
 left: '50%',
