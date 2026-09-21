@@ -33,10 +33,21 @@ export default function PassengerActiveDriver() {
   const isPassengerDashboard = pathname === '/' || pathname === '/movi' || pathname === '/passenger/dashboard'
   const [bundle, setBundle] = useState<ActiveRideBundle | null>(null)
   const [lang, setLang] = useState<'fr' | 'ht'>('fr')
+  const [showDriverCard, setShowDriverCard] = useState(true)
   const [liveDistanceKm, setLiveDistanceKm] = useState<number | null>(null)
   const [liveEtaMin, setLiveEtaMin] = useState<number | null>(null)
   const [shareNote, setShareNote] = useState('')
+useEffect(() => {
+  if (!bundle) return
 
+  setShowDriverCard(true)
+
+  const timer = window.setTimeout(() => {
+    setShowDriverCard(false)
+  }, 8000)
+
+  return () => window.clearTimeout(timer)
+}, [bundle?.ride_id])
   useEffect(() => {
     if (!isPassengerDashboard) return
     const saved = window.localStorage.getItem('taxi-language')
@@ -174,7 +185,29 @@ export default function PassengerActiveDriver() {
   }, [isPassengerDashboard])
 
   if (!isPassengerDashboard || !bundle) return null
-
+if (!showDriverCard) {
+  return (
+    <button
+      type="button"
+      onClick={() => setShowDriverCard(true)}
+      style={{
+  position: 'fixed',
+  bottom: '90px',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  zIndex: 12050,
+  padding: '12px 20px',
+  borderRadius: '999px',
+  border: 'none',
+  background: '#102033',
+  color: '#fff',
+  fontWeight: 800,
+}}
+    >
+      {lang === 'ht' ? 'Wè chofè a' : 'Voir le chauffeur'}
+    </button>
+  )
+}
   const name = bundle.driver_name?.trim() || (lang === 'ht' ? 'Chofè ou' : 'Votre chauffeur')
   const initial = name.charAt(0).toUpperCase()
   const vehicle = [bundle.vehicle_make, bundle.vehicle_model].filter(Boolean).join(' ') || bundle.vehicle_type || (lang === 'ht' ? 'Veyikil' : 'Véhicule')
