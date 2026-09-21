@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
     if (!response.ok) return []
 
     const json = await response.json()
-
+console.log('GEOCODE_STATUS', json.status, json.error_message, query)
     return (json.results ?? []).slice(0, 8).map((item: any) => {
       const types = item.types ?? []
 
