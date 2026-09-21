@@ -306,6 +306,7 @@ useEffect(() => {
     cancelled = true
   }
 }, [pickupCoords, effectiveDestinationCoords])
+  useEffect(() => {
   if (!user || !pickupCoords || !effectiveDestinationCoords) { setQuote(null); return }
     
     let cancelled = false
