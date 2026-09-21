@@ -347,17 +347,31 @@ if(point){
     mapRef.current=null
   }
 },[])   
-  useEffect(()=>{
-    if(!effectiveRide||!navigator.geolocation)return
-    setGpsStatus('waiting')
-    const refresh=()=>navigator.geolocation.getCurrentPosition(pos=>void applyPosition(pos),()=>setGpsStatus('error'),{enableHighAccuracy:true,maximumAge:0,timeout:12000})
-  
-    
-    refresh()
-    const timer=window.setInterval(refresh,2500)
-    return()=>window.clearInterval(timer)
-  },[effectiveRide?.id,effectiveRide?.status])
+ useEffect(()=>{
+  if(!effectiveRide||!navigator.geolocation)return
 
+  routeRef.current?.setMap?.(null)
+  routeOutlineRef.current?.setMap?.(null)
+  targetMarkerRef.current?.setMap?.(null)
+  routeRef.current=null
+  routeOutlineRef.current=null
+  targetMarkerRef.current=null
+  lastRouteAtRef.current=0
+  lastRoutePointRef.current=null
+  setRouteInfo(null)
+
+  setGpsStatus('waiting')
+
+  const refresh=()=>navigator.geolocation.getCurrentPosition(
+    pos=>void applyPosition(pos),
+    ()=>setGpsStatus('error'),
+    {enableHighAccuracy:true,maximumAge:0,timeout:12000}
+  )
+
+  refresh()
+  const timer=window.setInterval(refresh,2500)
+  return()=>window.clearInterval(timer)
+},[effectiveRide?.id,effectiveRide?.status])
   const ht=typeof window!=='undefined'&&localStorage.getItem('taxi-language')==='ht'
   return <>
     <style>{`
