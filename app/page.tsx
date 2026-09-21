@@ -167,11 +167,11 @@ export default function HomePage() {
     navigator.geolocation.getCurrentPosition(
       (p) => {
         const point = { lat: p.coords.latitude, lng: p.coords.longitude }
-        setPickupCoords(isHaitiPoint(point) ? point : haitiTestPickup)
-        setPickup(isHaitiPoint(point) ? copy[lang].current : copy[lang].testPosition)
+      setPickupCoords(point)
+       setPickup(copy[lang].current)
         setPickupStatus('ready')
       },
-      () => { setPickupCoords(haitiTestPickup); setPickup(copy[lang].testPosition); setPickupStatus('ready') },
+      () => { setPickupStatus('error') },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
   }, [lang])
@@ -548,7 +548,7 @@ setDestination(result.label + '\n' + streetLine)
         {(searchBusy || searchResults.length > 0) && <div className="search-results">{searchBusy && <div className="search-status">{t.searchingAddress}</div>}{searchResults.map((r) => <button key={r.id} onClick={() => chooseSearchResult(r)}><span>📍</span><span><strong>{r.label}</strong><small>{r.featureType === 'address' ? (lang === 'ht' ? 'Adrès sou kat la' : 'Adresse sur la carte') : r.featureType === 'street' ? (lang === 'ht' ? 'Pwen nan ri a · nimewo kay pa verifye' : 'Point dans la rue · numéro non vérifié') : destination}</small></span></button>)}</div>}
         {selectedStreetPoint && <div className="movi-address-note">{lang === 'ht' ? 'Ou chwazi ri a. Nimewo kay la rete nan adrès demann nan, men pin nan se yon pwen nan ri a.' : 'Vous avez choisi la rue. Le numéro reste dans la demande, mais le repère indique un point dans cette rue.'}</div>}
         
-        {pickupStatus === 'ready' && pickup === copy[lang].testPosition && <div className="movi-address-note">{lang === 'ht' ? 'GPS pa disponib; n ap sèvi ak Port-au-Prince kòm pwen depa tès la.' : 'GPS indisponible; Port-au-Prince est utilisé comme point de départ de test.'}</div>}
+         
         
         <div className="section-heading"><div><p className="eyebrow">{t.chooseService}</p><h2>{t.vehicles}</h2></div></div>
         <div className="ride-list">{rideOptions.map((option) => <button key={option.id} className={`ride-option ${selectedRide === option.id ? 'selected' : ''}`} onClick={() => setSelectedRide(option.id)}><span className="ride-icon">{option.id === 'moto' ? '🏍️' : option.id === 'comfort' ? '🚙' : '🚕'}</span><span className="ride-copy"><strong>{option.name}</strong><small>{lang === 'fr' ? option.detailFr : option.detailHt} · {option.eta}</small></span><strong className="ride-price">{selectedRide === option.id && effectiveQuote ? `${effectiveQuote.fare_htg.toLocaleString('fr-FR')} HTG` : '—'}</strong></button>)}</div>
