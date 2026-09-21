@@ -306,8 +306,8 @@ useEffect(() => {
     cancelled = true
   }
 }, [pickupCoords, effectiveDestinationCoords])
-  useEffect(() => {
-    if (!user || !pickupCoords || !effectiveDestinationCoords || !isHaitiPoint(pickupCoords) || !isHaitiPoint(effectiveDestinationCoords)) { setQuote(null); return }
+  if (!user || !pickupCoords || !effectiveDestinationCoords) { setQuote(null); return }
+    
     let cancelled = false
     let timeoutId: number | undefined
 
