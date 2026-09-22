@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { supabase } from '../lib/supabase'
-import { loadGoogleMaps } from '../lib/google-maps
+import { loadGoogleMaps } from '../lib/google-maps'
 type ActiveRideBundle = {
   ride_id: string
   ride_status: 'accepted' | 'driver_arriving' | 'in_progress'
