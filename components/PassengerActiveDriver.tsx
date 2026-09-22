@@ -113,12 +113,8 @@ try {
   }
 }
       
-        if (active) {
-          setLiveDistanceKm(null)
-          setLiveEtaMin(null)
-        }
-      }
-    }
+        
+    }      
 
     async function loadFallback(): Promise<ActiveRideBundle | null> {
       const [driverResp, trackingResp] = await Promise.all([
