@@ -145,8 +145,12 @@ const routeRef=useRef<any>(null)
   lastRoutePointRef.current=driverPoint
   lastRouteAtRef.current=now
 
-  const phase:RouteInfo['phase']=ride.status==='in_progress'?'destination':'pickup'
+  
+if(ride.status==='driver_arriving'){
+  return
+}
 
+const phase:RouteInfo['phase']=ride.status==='in_progress'?'destination':'pickup'
   const end:[number,number]=phase==='pickup'
     ? [Number(ride.pickup_longitude),Number(ride.pickup_latitude)]
     : [Number(ride.destination_longitude),Number(ride.destination_latitude)]
