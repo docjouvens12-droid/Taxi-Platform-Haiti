@@ -37,16 +37,15 @@ export function loadGoogleMaps(): Promise<any> {
   existingScript.remove()
 }   
 
-    window.__moviGoogleMapsInit = () => {
-      if (window.google?.maps) {
-        resolve(window.google)
+  window.__moviGoogleMapsInit = () => {
+  if (window.google?.maps) {
+    resolve(window.google)
   } else {
-  googleMapsPromise = null
-  reject(new Error('Google Maps initialized incorrectly'))
-}    
-      }
-    }
-
+    googleMapsPromise = null
+    reject(new Error('Google Maps initialized incorrectly'))
+  }
+}  
+    
     const language =
       process.env.NEXT_PUBLIC_GOOGLE_MAPS_LANGUAGE || 'fr'
 
