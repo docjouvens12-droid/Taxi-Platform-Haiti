@@ -22,12 +22,7 @@ type Props = {
 }
 type Point = { lat: number; lng: number; heading: number | null; speedKph: number | null }
 
-const HAITI_TEST_POSITION: Point = {
-  lat: 18.5944,
-  lng: -72.3074,
-  heading: null,
-  speedKph: 0,
-}
+
 
 export default function DriverMobileNavigationMap({ ride, lang, onMetricsChange }: Props) {
   const watchRef = useRef<number | null>(null)
@@ -50,7 +45,7 @@ export default function DriverMobileNavigationMap({ ride, lang, onMetricsChange 
     onMetricsChange?.({ distanceKm, etaMin })
   }, [distanceKm, etaMin, onMetricsChange])
 
-  async function syncDriverLocation(point: Point) {
+  async function syncDriverLocation(point: Point) {}
     const { error: syncError } = await supabase.rpc('update_driver_location', {
       p_latitude: point.lat,
       p_longitude: point.lng,
@@ -69,97 +64,113 @@ export default function DriverMobileNavigationMap({ ride, lang, onMetricsChange 
     return true
   }
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const queryTestMode = params.get('test') === 'haiti'
-    if (queryTestMode) localStorage.setItem('taxi_haiti_test_mode', '1')
-    const testMode = queryTestMode || localStorage.getItem('taxi_haiti_test_mode') === '1'
+  useEffect(() => {...}
+  const publish = (point: Point) => {
+    latestPositionRef.current = point
+    setPosition(point)
+    void syncDriverLocation(point)
+  }
 
-    const publish = (point: Point) => {
-      latestPositionRef.current = point
-      setPosition(point)
-      void syncDriverLocation(point)
-    }
-
-    if (testMode) {
-      publish(HAITI_TEST_POSITION)
-      heartbeatRef.current = window.setInterval(() => {
-        void syncDriverLocation(HAITI_TEST_POSITION)
-      }, 3000)
-
-      return () => {
-        if (heartbeatRef.current !== null) window.clearInterval(heartbeatRef.current)
-        heartbeatRef.current = null
-      }
-    }
-
-    if (!navigator.geolocation) {
-      setError(lang === 'fr' ? 'GPS indisponible sur cet appareil.' : 'GPS pa disponib sou aparèy sa a.')
-      return
-    }
-
-    watchRef.current = navigator.geolocation.watchPosition(
-      (p) => {
-        const next = {
-          lat: p.coords.latitude,
-          lng: p.coords.longitude,
-          heading: p.coords.heading ?? null,
-          speedKph: p.coords.speed == null ? null : p.coords.speed * 3.6,
-        }
-        publish(next)
-      },
-      () => setError(lang === 'fr' ? 'Autorisez la localisation pour utiliser le GPS.' : 'Bay pèmisyon Location pou itilize GPS la.'),
-      { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }
+  if (!navigator.geolocation) {
+    setError(
+      lang === 'fr'
+        ? 'GPS indisponible sur cet appareil.'
+        : 'GPS pa disponib sou aparèy sa a.'
     )
+    return
+  }
 
-    heartbeatRef.current = window.setInterval(() => {
-      if (latestPositionRef.current) void syncDriverLocation(latestPositionRef.current)
-    }, 3000)
-
-    return () => {
-      if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current)
-      if (heartbeatRef.current !== null) window.clearInterval(heartbeatRef.current)
-      watchRef.current = null
-      heartbeatRef.current = null
-    }
-  }, [lang])
-
-  useEffect(() => {
-    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-    if (!token || !position || targetLat == null || targetLng == null) return
-
-    const seq = ++requestSeq.current
-    const controller = new AbortController()
-    const timer = window.setTimeout(async () => {
-      try {
-        const coords = `${position.lng},${position.lat};${targetLng},${targetLat}`
-        const response = await fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?overview=full&geometries=polyline&steps=false&access_token=${encodeURIComponent(token)}`, { signal: controller.signal })
-        const json = await response.json()
-        const route = json.routes?.[0]
-        if (!route || seq !== requestSeq.current) {
-          setRoutePolyline(null)
-          setDistanceKm(null)
-          setEtaMin(null)
-          return
-        }
-        setDistanceKm(route.distance / 1000)
-        setEtaMin(Math.max(1, Math.round(route.duration / 60)))
-        setRoutePolyline(route.geometry ?? null)
-      } catch {
-        if (!controller.signal.aborted && seq === requestSeq.current) {
-          setRoutePolyline(null)
-          setDistanceKm(null)
-          setEtaMin(null)
-        }
+  watchRef.current = navigator.geolocation.watchPosition(
+    (p) => {
+      const next: Point = {
+        lat: p.coords.latitude,
+        lng: p.coords.longitude,
+        heading: p.coords.heading ?? null,
+        speedKph: p.coords.speed == null ? null : p.coords.speed * 3.6,
       }
-    }, 250)
 
-    return () => {
-      window.clearTimeout(timer)
-      controller.abort()
+      publish(next)
+    },
+    () =>
+      setError(
+        lang === 'fr'
+          ? 'Autorisez la localisation pour utiliser le GPS.'
+          : 'Bay pèmisyon Location pou itilize GPS la.'
+      ),
+    {
+      enableHighAccuracy: true,
+      maximumAge: 3000,
+      timeout: 15000,
     }
-  }, [position?.lat, position?.lng, targetLat, targetLng])
+  )
 
+  heartbeatRef.current = window.setInterval(() => {
+    if (latestPositionRef.current) {
+      void syncDriverLocation(latestPositionRef.current)
+    }
+  }, 3000)
+
+  return () => {
+    if (watchRef.current !== null) {
+      navigator.geolocation.clearWatch(watchRef.current)
+    }
+
+    if (heartbeatRef.current !== null) {
+      window.clearInterval(heartbeatRef.current)
+    }
+
+    watchRef.current = null
+    heartbeatRef.current = null
+  }
+useEffect(() => {
+  const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+
+  if (!token || !position || targetLat == null || targetLng == null) {
+    setRoutePolyline(null)
+    setDistanceKm(null)
+    setEtaMin(null)
+    return
+  }
+
+  const seq = ++requestSeq.current
+  const controller = new AbortController()
+
+  const timer = window.setTimeout(async () => {
+    try {
+      const coords = ${position.lng},${position.lat};${targetLng},${targetLat}
+
+      const response = await fetch(
+        https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?overview=full&geometries=polyline&steps=false&access_token=${encodeURIComponent(token)},
+        { signal: controller.signal }
+      )
+
+      const json = await response.json()
+      const route = json.routes?.[0]
+
+      if (!route || seq !== requestSeq.current) {
+        setRoutePolyline(null)
+        setDistanceKm(null)
+        setEtaMin(null)
+        return
+      }
+
+      setDistanceKm(route.distance / 1000)
+      setEtaMin(Math.max(1, Math.round(route.duration / 60)))
+      setRoutePolyline(route.geometry ?? null)
+    } catch {
+      if (!controller.signal.aborted && seq === requestSeq.current) {
+        setRoutePolyline(null)
+        setDistanceKm(null)
+        setEtaMin(null)
+      }
+    }
+  }, 250)
+
+  return () => {
+    window.clearTimeout(timer)
+    controller.abort()
+  }
+}, [position?.lat, position?.lng, targetLat, targetLng])
   const mapUrl = useMemo(() => {
     const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
     if (!token || !position || targetLat == null || targetLng == null) return ''
