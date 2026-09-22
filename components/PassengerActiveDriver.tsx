@@ -67,23 +67,52 @@ useEffect(() => {
       const goingToPassenger = row.ride_status === 'accepted'
       const targetLat = goingToPassenger ? row.pickup_latitude : row.destination_latitude
       const targetLng = goingToPassenger ? row.pickup_longitude : row.destination_longitude
-      const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-      if (!token || targetLat == null || targetLng == null) return
+      if (targetLat == null || targetLng == null) return
+try {
+  const google = await loadGoogleMaps()
+  const directionsService = new google.maps.DirectionsService()
 
-      try {
-        const coords = `${row.driver_longitude},${row.driver_latitude};${targetLng},${targetLat}`
-        const response = await fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?overview=full&geometries=polyline&steps=false&access_token=${encodeURIComponent(token)}`)
-        const json = await response.json()
-        const route = json.routes?.[0]
-        if (!active) return
-        if (!route) {
-          setLiveDistanceKm(null)
-          setLiveEtaMin(null)
-          return
-        }
-        setLiveDistanceKm(route.distance / 1000)
-        setLiveEtaMin(Math.max(1, Math.round(route.duration / 60)))
-      } catch {
+  const result = await directionsService.route({
+    origin: {
+      lat: row.driver_latitude,
+      lng: row.driver_longitude,
+    },
+    destination: {
+      lat: targetLat,
+      lng: targetLng,
+    },
+    travelMode: google.maps.TravelMode.DRIVING,
+    region: 'HT',
+  })
+
+  if (!active) return
+
+  const leg = result.routes?.[0]?.legs?.[0]
+
+  if (!leg) {
+    setLiveDistanceKm(null)
+    setLiveEtaMin(null)
+    return
+  }
+
+  setLiveDistanceKm(
+    leg.distance?.value != null
+      ? leg.distance.value / 1000
+      : null
+  )
+
+  setLiveEtaMin(
+    leg.duration?.value != null
+      ? Math.max(1, Math.round(leg.duration.value / 60))
+      : null
+  )
+} catch {
+  if (active) {
+    setLiveDistanceKm(null)
+    setLiveEtaMin(null)
+  }
+}
+      
         if (active) {
           setLiveDistanceKm(null)
           setLiveEtaMin(null)
