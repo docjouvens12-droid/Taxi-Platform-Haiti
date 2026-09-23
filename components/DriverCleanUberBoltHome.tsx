@@ -128,6 +128,7 @@ if (!targetMarkerRef.current) {
 } else {
   targetMarkerRef.current.setMap(map)
 }
+ }  
  async function drawRoute(driverPoint:[number,number],ride:DriverMapRide,force=false){
   const map=mapRef.current
   if(!map)return
