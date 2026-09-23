@@ -290,7 +290,18 @@ useEffect(() => {
   targetAddress,
   routePolyline,
 ])  
+useEffect(() => {
+  return () => {
+    driverMarkerRef.current?.setMap(null)
+    targetMarkerRef.current?.setMap(null)
+    routeRef.current?.setMap(null)
 
+    driverMarkerRef.current = null
+    targetMarkerRef.current = null
+    routeRef.current = null
+    mapRef.current = null
+  }
+}, [])
   return <section className="nav">
     <div className="head">
       <div>
