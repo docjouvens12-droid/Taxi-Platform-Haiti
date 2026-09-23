@@ -55,7 +55,7 @@ export function loadGoogleMaps(): Promise<any> {
 
     const params = new URLSearchParams({
       key: apiKey,
-      libraries: 'places',
+      libraries: 'places,geometry',
       language,
       region,
       callback: '__moviGoogleMapsInit',
