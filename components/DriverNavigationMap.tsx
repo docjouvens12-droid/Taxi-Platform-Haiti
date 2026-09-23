@@ -323,7 +323,7 @@ useEffect(() => {
 
       if (step) {
         const meters = step.distance?.value ?? 0
-        const key = google:${step.start_location.lat()}:${step.start_location.lng()}
+        const key = `google:${step.start_location.lat()}:${step.start_location.lng()}`
         const text =
           step.instructions?.replace(/<[^>]+>/g, '') ||
           (lang === 'ht' ? 'Kontinye sou wout la' : 'Continuez sur la route')
