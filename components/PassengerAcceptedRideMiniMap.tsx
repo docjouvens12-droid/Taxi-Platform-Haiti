@@ -99,8 +99,16 @@ if (!driverMarkerRef.current) {
   endMarkerRef.current = new google.maps.Marker({
     map,
     position: { lat: targetLat, lng: targetLng },
-    title: row.ride_status === 'in_progress' ? 'Destination' : 'Prise en charge',
-  })
+title: row.ride_status === 'in_progress' ? 'Destination' : 'Prise en charge',
+icon: {
+  path: google.maps.SymbolPath.CIRCLE,
+  scale: 8,
+  fillColor: '#EA4335',
+  fillOpacity: 1,
+  strokeColor: '#FFFFFF',
+  strokeWeight: 3,
+},
+})
 } else {
   endMarkerRef.current.setMap(map)
 }
