@@ -85,7 +85,7 @@ if (!driverMarkerRef.current) {
     title: 'Chauffeur',
     icon: {
       path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-      scale: 6,
+      scale: 7,
       fillColor: '#2563EB',
       fillOpacity: 1,
       strokeColor: '#FFFFFF',
@@ -102,7 +102,7 @@ if (!driverMarkerRef.current) {
     title: row.ride_status === 'in_progress' ? 'Destination' : 'Prise en charge',
   })
 } else {
-  driverMarkerRef.current.setMap(map)
+  endMarkerRef.current.setMap(map)
 }
 
    const now = Date.now()
@@ -132,6 +132,15 @@ const snappedEnd = path[path.length - 1]
 
 if (snappedStart) {
   driverMarkerRef.current?.setPosition(snappedStart)
+if (path.length > 1 && driverMarkerRef.current) {
+  const heading = google.maps.geometry.spherical.computeHeading(path[0], path[1])
+  const icon = driverMarkerRef.current.getIcon() as any
+
+  driverMarkerRef.current.setIcon({
+    ...icon,
+    rotation: heading,
+  })
+}  
 }
 
 if (snappedEnd) {
