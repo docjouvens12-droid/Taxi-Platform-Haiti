@@ -136,7 +136,7 @@ lastRouteAt.current = now
       path,
       strokeColor: '#FFFFFF',
       strokeOpacity: 1,
-      strokeWeight: 9,
+    strokeWeight: 11,
     })
   } else {
     ;(map as any).__passengerRouteOutline.setPath(path)
@@ -148,7 +148,7 @@ lastRouteAt.current = now
       path,
       strokeColor: '#4285F4',
       strokeOpacity: 1,
-      strokeWeight: 5,
+      strokeWeight: 6,
     })
   } else {
     ;(map as any).__passengerRouteLine.setPath(path)
