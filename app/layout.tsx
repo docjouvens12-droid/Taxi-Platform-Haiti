@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import 'mapbox-gl/dist/mapbox-gl.css'
+
 import './globals.css'
 import './menu.css'
 import './completion.css'
