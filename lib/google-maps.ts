@@ -39,13 +39,14 @@ export function loadGoogleMaps(): Promise<any> {
 
   window.__moviGoogleMapsInit = () => {
   if (window.google?.maps) {
+    delete window.__moviGoogleMapsInit
     resolve(window.google)
   } else {
     googleMapsPromise = null
+    delete window.__moviGoogleMapsInit
     reject(new Error('Google Maps initialized incorrectly'))
   }
-}  
-    
+}
     const language =
       process.env.NEXT_PUBLIC_GOOGLE_MAPS_LANGUAGE || 'fr'
 
@@ -67,12 +68,12 @@ export function loadGoogleMaps(): Promise<any> {
     script.defer = true
     script.dataset.moviGoogleMaps = 'true'
 
-    script.onerror = () => {
+   script.onerror = () => {
   googleMapsPromise = null
+  delete window.__moviGoogleMapsInit
   script.remove()
   reject(new Error('Unable to load Google Maps JavaScript API'))
 }
-    
 
     document.head.appendChild(script)
   })
