@@ -127,8 +127,18 @@ lastRouteAt.current = now
     distanceKm: route.distanceMeters != null ? route.distanceMeters / 1000 : 0,
     minutes: route.durationMillis != null ? Math.max(1, Math.ceil(route.durationMillis / 60000)) : 1,
   })
+const path = route.path ?? []
 
-  const path = route.path ?? []
+const snappedStart = path[0]
+const snappedEnd = path[path.length - 1]
+
+if (snappedStart) {
+  driverMarkerRef.current?.setPosition(snappedStart)
+}
+
+if (snappedEnd) {
+  endMarkerRef.current?.setPosition(snappedEnd)
+}
 
   if (!(map as any).__passengerRouteOutline) {
     ;(map as any).__passengerRouteOutline = new google.maps.Polyline({
