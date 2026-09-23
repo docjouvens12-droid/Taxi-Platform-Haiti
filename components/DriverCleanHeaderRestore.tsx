@@ -65,7 +65,7 @@ export default function DriverCleanHeaderRestore(){
         badge.className='dcm-driver-status'
         head.appendChild(badge)
       }
-      const online=Boolean(document.querySelector('.online-card .dot.on, .onlineCard .dot.on, .status-dot.on, .drv2-pill.online'))
+      const online=Boolean(document.querySelector('.online-card .dot.on, .onlineCard .dot.on, .status-dot.on, .drv2-pill.online, .drv2-switch.on'))
       const ht=localStorage.getItem('taxi-language')==='ht'
       const label=online?(ht?'Sou liy':'En ligne'):(ht?'Pa sou liy':'Hors ligne')
       const wanted=`<span></span>${label}`
