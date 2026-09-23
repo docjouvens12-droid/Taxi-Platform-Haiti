@@ -33,27 +33,20 @@ export function loadGoogleMaps(): Promise<any> {
       'script[data-movi-google-maps="true"]'
     )
 
-    if (existingScript) {
-      existingScript.addEventListener('load', () => {
-        if (window.google?.maps) resolve(window.google)
-        else reject(new Error('Google Maps loaded but window.google is unavailable'))
-      })
+ if (existingScript) {
+  existingScript.remove()
+}   
 
-      existingScript.addEventListener('error', () => {
-        reject(new Error('Google Maps script failed to load'))
-      })
-
-      return
-    }
-
-    window.__moviGoogleMapsInit = () => {
-      if (window.google?.maps) {
-        resolve(window.google)
-      } else {
-        reject(new Error('Google Maps initialized incorrectly'))
-      }
-    }
-
+  window.__moviGoogleMapsInit = () => {
+  if (window.google?.maps) {
+    delete window.__moviGoogleMapsInit
+    resolve(window.google)
+  } else {
+    googleMapsPromise = null
+    delete window.__moviGoogleMapsInit
+    reject(new Error('Google Maps initialized incorrectly'))
+  }
+}
     const language =
       process.env.NEXT_PUBLIC_GOOGLE_MAPS_LANGUAGE || 'fr'
 
@@ -75,13 +68,16 @@ export function loadGoogleMaps(): Promise<any> {
     script.defer = true
     script.dataset.moviGoogleMaps = 'true'
 
-    script.onerror = () => {
-      googleMapsPromise = null
-      reject(new Error('Unable to load Google Maps JavaScript API'))
-    }
+   script.onerror = () => {
+  googleMapsPromise = null
+  delete window.__moviGoogleMapsInit
+  script.remove()
+  reject(new Error('Unable to load Google Maps JavaScript API'))
+}
 
     document.head.appendChild(script)
   })
-
   return googleMapsPromise
 }
+
+ 

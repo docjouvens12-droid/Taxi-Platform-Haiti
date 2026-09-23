@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import 'mapbox-gl/dist/mapbox-gl.css'
+
 import './globals.css'
 import './menu.css'
 import './completion.css'
@@ -27,7 +27,7 @@ import AuthRoleRedirector from '../components/AuthRoleRedirector'
 import AdminPermissionGuard from '../components/AdminPermissionGuard'
 import PasswordVisibilityToggle from '../components/PasswordVisibilityToggle'
 import PwaRegister from '../components/PwaRegister'
-import HaitiTestGeolocation from '../components/HaitiTestGeolocation'
+
 import RouteScopedEnhancers from '../components/RouteScopedEnhancers'
 import PassengerRideProvider from '../components/PassengerRideProvider'
 
@@ -61,7 +61,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="fr">
       <body>
-        <HaitiTestGeolocation />
+        
         <PwaRegister />
         <UnifiedPublicEntry />
         <IphoneLoginInputFix />

@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import type { Map as MapboxMap, Marker as MapboxMarker } from 'mapbox-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
+import { loadGoogleMaps } from '../lib/google-maps'
 
 type RideStatus = 'requested' | 'accepted' | 'driver_arriving' | 'in_progress' | 'completed' | 'cancelled'
 
@@ -18,7 +17,7 @@ type Ride = {
 
 type Props = { ride: Ride; lang: 'fr' | 'ht' }
 type Point = { lat: number; lng: number; heading: number | null }
-type MapboxModule = typeof import('mapbox-gl')
+
 type NavStep = {
   key: string
   text: string
@@ -26,61 +25,16 @@ type NavStep = {
   icon: string
 }
 
-function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
-  const toRad = (v: number) => v * Math.PI / 180
-  const dLat = toRad(b.lat - a.lat)
-  const dLng = toRad(b.lng - a.lng)
-  const lat1 = toRad(a.lat)
-  const lat2 = toRad(b.lat)
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
-  return 6371000 * 2 * Math.asin(Math.sqrt(h))
-}
-
-function instructionFor(step: any, lang: 'fr' | 'ht', meters: number) {
-  const maneuver = step?.maneuver ?? {}
-  const modifier = String(maneuver.modifier ?? '')
-  const type = String(maneuver.type ?? '')
-  const road = String(step?.name ?? '').trim()
-  const rounded = meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${Math.max(20, Math.round(meters / 10) * 10)} m`
-
-  let action = ''
-  let icon = '⬆️'
-  if (type === 'arrive') {
-    action = lang === 'ht' ? 'Ou rive nan destinasyon an' : 'Vous êtes arrivé à destination'
-    icon = '🏁'
-  } else if (modifier.includes('left')) {
-    action = lang === 'ht' ? 'Vire agoch' : 'Tournez à gauche'
-    icon = '⬅️'
-  } else if (modifier.includes('right')) {
-    action = lang === 'ht' ? 'Vire adwat' : 'Tournez à droite'
-    icon = '➡️'
-  } else if (type === 'roundabout' || type === 'rotary') {
-    action = lang === 'ht' ? 'Antre nan wonpwen an' : 'Entrez dans le rond-point'
-    icon = '🔄'
-  } else if (modifier.includes('uturn')) {
-    action = lang === 'ht' ? 'Fè demi-tou' : 'Faites demi-tour'
-    icon = '↩️'
-  } else {
-    action = lang === 'ht' ? 'Kontinye dwat' : 'Continuez tout droit'
-    icon = '⬆️'
-  }
-
-  const roadPart = road ? (lang === 'ht' ? ` sou ${road}` : ` sur ${road}`) : ''
-  const text = type === 'arrive'
-    ? action
-    : (lang === 'ht' ? `Nan ${rounded}, ${action.toLowerCase()}${roadPart}` : `Dans ${rounded}, ${action.toLowerCase()}${roadPart}`)
-  return { text, icon }
-}
-
 export default function DriverNavigationMap({ ride, lang }: Props) {
   const onDashboard = typeof window !== 'undefined' && window.location.pathname === '/driver/dashboard'
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const mapboxRef = useRef<MapboxModule | null>(null)
-  const mapRef = useRef<MapboxMap | null>(null)
-  const driverMarkerRef = useRef<MapboxMarker | null>(null)
-  const targetMarkerRef = useRef<MapboxMarker | null>(null)
+  const mapRef = useRef<any>(null)
+const driverMarkerRef = useRef<any>(null)
+const targetMarkerRef = useRef<any>(null)
+const routeRef = useRef<any>(null)
+  
   const watchRef = useRef<number | null>(null)
-  const announcedRef = useRef<Record<string, boolean>>({})
+  
   const [opened, setOpened] = useState(true)
   const [position, setPosition] = useState<Point | null>(null)
   const [distanceKm, setDistanceKm] = useState<number | null>(null)
@@ -101,7 +55,7 @@ export default function DriverNavigationMap({ ride, lang }: Props) {
   }, [])
 
   useEffect(() => {
-    announcedRef.current = {}
+  
     setNextStep(null)
   }, [ride.status, targetLat, targetLng])
 
@@ -120,26 +74,23 @@ export default function DriverNavigationMap({ ride, lang }: Props) {
   useEffect(() => {
     if (onDashboard || !opened) return
     let cancelled = false
-    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-    if (!token || !containerRef.current || mapRef.current) return
+if (!containerRef.current || mapRef.current) return    
 
     ;(async () => {
       try {
-        const mod = await import('mapbox-gl')
-        if (cancelled || !containerRef.current) return
-        mapboxRef.current = mod
-        mod.default.accessToken = token
-        const map = new mod.default.Map({
-          container: containerRef.current,
-          style: 'mapbox://styles/mapbox/navigation-day-v1',
-          center: [-72.3364, 18.5392],
-          zoom: 14,
-          pitch: 45,
-          attributionControl: true,
-        })
-        map.addControl(new mod.default.NavigationControl({ showCompass: true }), 'bottom-right')
+      const google = await loadGoogleMaps()
+if (cancelled || !containerRef.current) return
+const map = new google.maps.Map(containerRef.current, {
+  center: { lat: 18.5392, lng: -72.3364 },
+  zoom: 14,
+  mapTypeControl: false,
+  streetViewControl: false,
+  fullscreenControl: false,
+  clickableIcons: false,
+})        
+        
         mapRef.current = map
-        map.once('load', () => { if (!cancelled) setMapReady(true) })
+        if (!cancelled) setMapReady(true)
       } catch {
         if (!cancelled) setMapFailed(true)
       }
@@ -147,11 +98,14 @@ export default function DriverNavigationMap({ ride, lang }: Props) {
 
     return () => {
       cancelled = true
-      driverMarkerRef.current?.remove()
-      targetMarkerRef.current?.remove()
-      mapRef.current?.remove()
-      mapRef.current = null
-      mapboxRef.current = null
+     driverMarkerRef.current?.setMap(null)
+targetMarkerRef.current?.setMap(null)
+routeRef.current?.setMap(null)
+
+driverMarkerRef.current = null
+targetMarkerRef.current = null
+routeRef.current = null
+mapRef.current = null
       setMapReady(false)
     }
   }, [opened, onDashboard])
@@ -169,46 +123,78 @@ export default function DriverNavigationMap({ ride, lang }: Props) {
     }
   }, [opened, onDashboard])
 
-  useEffect(() => {
-    if (onDashboard) return
+useEffect(() => {
+  if (onDashboard || !position) return
+
+  let cancelled = false
+
+  ;(async () => {
+    const google = await loadGoogleMaps()
+    if (cancelled) return
+
     const map = mapRef.current
-    const mb = mapboxRef.current?.default
-    if (!map || !mb || !position) return
-    if (!driverMarkerRef.current) {
-      const el = document.createElement('div')
-      el.className = 'driver-nav-car'
-      el.innerHTML = '<span>🚕</span>'
-      driverMarkerRef.current = new mb.Marker({ element: el, rotationAlignment: 'map' }).addTo(map)
+    if (!map) return
+
+    const driverPoint = {
+      lat: position.lat,
+      lng: position.lng,
     }
-    driverMarkerRef.current.setLngLat([position.lng, position.lat])
-    if (position.heading != null) driverMarkerRef.current.setRotation(position.heading)
-    map.easeTo({ center: [position.lng, position.lat], zoom: 15.5, bearing: position.heading ?? map.getBearing(), pitch: 50, duration: 700 })
-  }, [position, mapReady, onDashboard])
 
-  useEffect(() => {
-    if (onDashboard) return
-    const map = mapRef.current
-    const mb = mapboxRef.current?.default
-    if (!map || !mb || targetLat == null || targetLng == null) return
-    targetMarkerRef.current?.remove()
-    const el = document.createElement('div')
-    el.className = 'driver-nav-target'
-    el.textContent = goingToDestination ? '🏁' : '📍'
-    targetMarkerRef.current = new mb.Marker({ element: el }).setLngLat([targetLng, targetLat]).addTo(map)
-  }, [targetLat, targetLng, goingToDestination, mapReady, onDashboard])
+    if (!driverMarkerRef.current) {
+      driverMarkerRef.current = new google.maps.Marker({
+        map,
+        position: driverPoint,
+        title: 'Chauffeur',
+      })
+    } else {
+      driverMarkerRef.current.setPosition(driverPoint)
+      driverMarkerRef.current.setMap(map)
+    }
 
-  function speak(text: string) {
-    if (!voiceEnabled || typeof window === 'undefined' || !('speechSynthesis' in window)) return
-    try {
-      window.speechSynthesis.cancel()
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = lang === 'fr' ? 'fr-FR' : 'fr-FR'
-      utterance.rate = 0.95
-      utterance.volume = 1
-      window.speechSynthesis.speak(utterance)
-    } catch {}
+    map.panTo(driverPoint)
+    map.setZoom(15)
+  })().catch(() => {})
+
+  return () => {
+    cancelled = true
   }
+}, [position, mapReady, onDashboard])  
+  
+ useEffect(() => {
+  if (onDashboard || targetLat == null || targetLng == null) return
 
+  let cancelled = false
+
+  ;(async () => {
+    const google = await loadGoogleMaps()
+    if (cancelled) return
+
+    const map = mapRef.current
+    if (!map) return
+
+    const targetPoint = {
+      lat: targetLat,
+      lng: targetLng,
+    }
+
+    if (!targetMarkerRef.current) {
+      targetMarkerRef.current = new google.maps.Marker({
+        map,
+        position: targetPoint,
+        title: targetAddress,
+      })
+    } else {
+      targetMarkerRef.current.setPosition(targetPoint)
+      targetMarkerRef.current.setMap(map)
+    }
+  })().catch(() => {})
+
+  return () => {
+    cancelled = true
+  }
+}, [targetLat, targetLng, targetAddress, goingToDestination, mapReady, onDashboard])
+
+  
   function toggleVoice() {
     const next = !voiceEnabled
     setVoiceEnabled(next)
@@ -224,65 +210,118 @@ export default function DriverNavigationMap({ ride, lang }: Props) {
       window.speechSynthesis.cancel()
     }
   }
+useEffect(() => {
+  if (onDashboard) return
 
-  useEffect(() => {
-    if (onDashboard) return
-    const map = mapRef.current
-    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-    if (!map || !token || !position || targetLat == null || targetLng == null || !mapReady) return
-    let cancelled = false
-    const controller = new AbortController()
+  const map = mapRef.current
+  if (!map || !position || targetLat == null || targetLng == null || !mapReady) return
 
-    ;(async () => {
-      try {
-        const coords = `${position.lng},${position.lat};${targetLng},${targetLat}`
-        const response = await fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?overview=full&geometries=geojson&steps=true&voice_instructions=true&banner_instructions=true&voice_units=metric&language=fr&access_token=${encodeURIComponent(token)}`, { signal: controller.signal })
-        const json = await response.json()
-        const route = json.routes?.[0]
-        if (!route || cancelled) return
-        setDistanceKm(route.distance / 1000)
-        setEtaMin(Math.max(1, Math.round(route.duration / 60)))
+  let cancelled = false
 
-        const steps = route.legs?.[0]?.steps ?? []
-        const candidate = steps[1] ?? steps[0]
-        if (candidate?.maneuver?.location) {
-          const [lng, lat] = candidate.maneuver.location
-          const meters = haversineMeters(position, { lat, lng })
-          const key = `${candidate.maneuver.type || ''}:${candidate.maneuver.modifier || ''}:${Number(lat).toFixed(5)}:${Number(lng).toFixed(5)}`
-          const built = instructionFor(candidate, lang, meters)
-          setNextStep({ key, text: built.text, distanceMeters: meters, icon: built.icon })
+  ;(async () => {
+    try {
+      const google = await loadGoogleMaps()
+      if (cancelled) return
 
-          const earlyKey = `${key}:early`
-          const nowKey = `${key}:now`
-          if (voiceEnabled && meters <= 300 && meters > 85 && !announcedRef.current[earlyKey]) {
-            announcedRef.current[earlyKey] = true
-            speak(built.text)
-          }
-          if (voiceEnabled && meters <= 85 && !announcedRef.current[nowKey]) {
-            announcedRef.current[nowKey] = true
-            const immediate = instructionFor(candidate, lang, 20).text
-            speak(immediate)
-          }
-        }
+      const directionsService = new google.maps.DirectionsService()
 
-        if (map.getLayer('driver-nav-route')) map.removeLayer('driver-nav-route')
-        if (map.getSource('driver-nav-route')) map.removeSource('driver-nav-route')
-        map.addSource('driver-nav-route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: route.geometry } })
-        map.addLayer({
-          id: 'driver-nav-route',
-          type: 'line',
-          source: 'driver-nav-route',
-          layout: { 'line-cap': 'round', 'line-join': 'round' },
-          paint: { 'line-color': '#1479ff', 'line-width': 7, 'line-opacity': 0.95 },
-        })
-      } catch {
-        if (!cancelled && !controller.signal.aborted) { setDistanceKm(null); setEtaMin(null) }
+      const result = await directionsService.route({
+        origin: {
+          lat: position.lat,
+          lng: position.lng,
+        },
+        destination: {
+          lat: targetLat,
+          lng: targetLng,
+        },
+        travelMode: google.maps.TravelMode.DRIVING,
+        region: 'HT',
+      })
+
+      if (cancelled) return
+
+      const route = result.routes?.[0]
+      const leg = route?.legs?.[0]
+
+      if (!route || !leg) {
+        setDistanceKm(null)
+        setEtaMin(null)
+        setNextStep(null)
+        return
       }
-    })()
 
-    return () => { cancelled = true; controller.abort() }
-  }, [position?.lat, position?.lng, targetLat, targetLng, mapReady, onDashboard, lang, voiceEnabled])
+      setDistanceKm(
+        leg.distance?.value != null
+          ? leg.distance.value / 1000
+          : null
+      )
 
+      setEtaMin(
+        leg.duration?.value != null
+          ? Math.max(1, Math.round(leg.duration.value / 60))
+          : null
+      )
+
+      const step = leg.steps?.[0]
+
+      if (step) {
+        const meters = step.distance?.value ?? 0
+        const key = `google:${step.start_location.lat()}:${step.start_location.lng()}`
+        const text =
+          step.instructions?.replace(/<[^>]+>/g, '') ||
+          (lang === 'ht' ? 'Kontinye sou wout la' : 'Continuez sur la route')
+
+        setNextStep({
+          key,
+          text,
+          distanceMeters: meters,
+          icon: '⬆️',
+        })
+      } else {
+        setNextStep(null)
+      }
+
+      const path =
+        route.overview_path?.map((point: any) => ({
+          lat: point.lat(),
+          lng: point.lng(),
+        })) ?? []
+
+      if (!routeRef.current) {
+        routeRef.current = new google.maps.Polyline({
+          map,
+          path,
+          strokeColor: '#1479ff',
+          strokeOpacity: 0.95,
+          strokeWeight: 7,
+        })
+      } else {
+        routeRef.current.setPath(path)
+        routeRef.current.setMap(map)
+      }
+    } catch {
+      if (!cancelled) {
+        setDistanceKm(null)
+        setEtaMin(null)
+        setNextStep(null)
+      }
+    }
+  })()
+
+  return () => {
+    cancelled = true
+  }
+}, [
+  position?.lat,
+  position?.lng,
+  targetLat,
+  targetLng,
+  mapReady,
+  onDashboard,
+  lang,
+  
+])
+  
   if (onDashboard) {
     return <div style={{padding:'14px',borderRadius:16,background:'#eef4ff',color:'#174a8b',fontWeight:800,margin:'12px 0'}}>{lang === 'fr' ? 'Ouverture automatique du GPS…' : 'GPS ap louvri otomatikman…'}</div>
   }

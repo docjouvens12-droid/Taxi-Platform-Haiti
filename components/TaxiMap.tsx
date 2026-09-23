@@ -93,15 +93,21 @@ export default function TaxiMap({ pickup, destination, routeGeometry, routeAppro
     ? tracking.destination_longitude
     : tracking?.pickup_longitude
 
-  const requestId = ++requestRef.current
+ const requestId = ++requestRef.current
 
-  if (lat == null || lng == null || targetLat == null || targetLng == null) {
-    setDriverDistanceKm(null)
-    setDriverEtaMin(null)
-    setDriverRoutePolyline(null)
-    return
-  }
+if (tracking?.ride_status === 'driver_arriving') {
+  setDriverDistanceKm(null)
+  setDriverEtaMin(null)
+  setDriverRoutePolyline(null)
+  return
+}
 
+if (lat == null || lng == null || targetLat == null || targetLng == null) {
+  setDriverDistanceKm(null)
+  setDriverEtaMin(null)
+  setDriverRoutePolyline(null)
+  return
+}
   let cancelled = false
 
   ;(async () => {
@@ -167,22 +173,47 @@ export default function TaxiMap({ pickup, destination, routeGeometry, routeAppro
   tracking?.destination_latitude,
   tracking?.destination_longitude,
 ])
-  const trackingLabel = tracking?.ride_status === 'in_progress'
+  const trackingLabel =
+  tracking?.ride_status === 'in_progress'
     ? (lang === 'ht' ? 'Sou wout pou destinasyon' : 'Vers la destination')
-    : (lang === 'ht' ? 'Chofè a ap vin pran ou' : 'Votre chauffeur vient vous chercher')
-
+    : tracking?.ride_status === 'driver_arriving'
+      ? (lang === 'ht' ? 'Chofè a rive' : 'Votre chauffeur est arrivé')
+      : (lang === 'ht' ? 'Chofè a ap vin pran ou' : 'Votre chauffeur vient vous chercher')
   const positionLabel = lang === 'ht' ? 'Pozisyon ou' : 'Votre position'
   const liveLabel = lang === 'ht' ? 'Pozisyon an dirèk' : 'Position en direct'
-  const unavailable = lang === 'ht' ? 'Kat la pa disponib pou kounye a' : 'Carte temporairement indisponible'
+  
 
   return (
     <div className="safe-map-wrap">
 <PassengerLiveMap pickup={pickup}
         driver={tracking?.driver_latitude != null && tracking.driver_longitude != null ? { lat: tracking.driver_latitude, lng: tracking.driver_longitude } : null}
-        target={tracking ? (tracking.ride_status === 'in_progress'
-          ? (tracking.destination_latitude != null && tracking.destination_longitude != null ? { lat: tracking.destination_latitude, lng: tracking.destination_longitude } : null)
-          : (tracking.pickup_latitude != null && tracking.pickup_longitude != null ? { lat: tracking.pickup_latitude, lng: tracking.pickup_longitude } : null)) : null}
-        route={tracking ? driverRoutePolyline : routeGeometry}
+        target={
+  tracking
+    ? tracking.ride_status === 'in_progress'
+      ? (
+          tracking.destination_latitude != null &&
+          tracking.destination_longitude != null
+            ? {
+                lat: tracking.destination_latitude,
+                lng: tracking.destination_longitude,
+              }
+            : null
+        )
+      : tracking.ride_status === 'accepted'
+        ? (
+            tracking.pickup_latitude != null &&
+            tracking.pickup_longitude != null
+              ? {
+                  lat: tracking.pickup_latitude,
+                  lng: tracking.pickup_longitude,
+                }
+              : null
+          )
+        : null
+    : null
+}
+
+  route={tracking ? driverRoutePolyline : routeGeometry}
         previewDestination={tracking ? null : destination}
         routeApproximate={tracking ? false : routeApproximate}
         rideKey={tracking ? tracking.ride_id + ':' + tracking.ride_status : destination ? `preview:${destination.lat},${destination.lng}` : ''} />

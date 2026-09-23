@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-
+import { loadGoogleMaps } from '../lib/google-maps'
 type RideStatus = 'accepted' | 'driver_arriving' | 'in_progress'
 
 type Ride = {
@@ -22,22 +22,22 @@ type Props = {
 }
 type Point = { lat: number; lng: number; heading: number | null; speedKph: number | null }
 
-const HAITI_TEST_POSITION: Point = {
-  lat: 18.5944,
-  lng: -72.3074,
-  heading: null,
-  speedKph: 0,
-}
+
 
 export default function DriverMobileNavigationMap({ ride, lang, onMetricsChange }: Props) {
   const watchRef = useRef<number | null>(null)
   const heartbeatRef = useRef<number | null>(null)
   const requestSeq = useRef(0)
   const latestPositionRef = useRef<Point | null>(null)
+  const mapEl = useRef<HTMLDivElement>(null)
+const mapRef = useRef<any>(null)
+const driverMarkerRef = useRef<any>(null)
+const targetMarkerRef = useRef<any>(null)
+const routeRef = useRef<any>(null)
   const [position, setPosition] = useState<Point | null>(null)
   const [distanceKm, setDistanceKm] = useState<number | null>(null)
   const [etaMin, setEtaMin] = useState<number | null>(null)
-  const [routePolyline, setRoutePolyline] = useState<string | null>(null)
+const [routePolyline, setRoutePolyline] = useState<any[]>([])
   const [error, setError] = useState('')
   const [mapFailed, setMapFailed] = useState(false)
 
@@ -70,113 +70,238 @@ export default function DriverMobileNavigationMap({ ride, lang, onMetricsChange 
   }
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const queryTestMode = params.get('test') === 'haiti'
-    if (queryTestMode) localStorage.setItem('taxi_haiti_test_mode', '1')
-    const testMode = queryTestMode || localStorage.getItem('taxi_haiti_test_mode') === '1'
+  const publish = (point: Point) => {
+    latestPositionRef.current = point
+    setPosition(point)
+    void syncDriverLocation(point)
+  }
 
-    const publish = (point: Point) => {
-      latestPositionRef.current = point
-      setPosition(point)
-      void syncDriverLocation(point)
-    }
-
-    if (testMode) {
-      publish(HAITI_TEST_POSITION)
-      heartbeatRef.current = window.setInterval(() => {
-        void syncDriverLocation(HAITI_TEST_POSITION)
-      }, 3000)
-
-      return () => {
-        if (heartbeatRef.current !== null) window.clearInterval(heartbeatRef.current)
-        heartbeatRef.current = null
-      }
-    }
-
-    if (!navigator.geolocation) {
-      setError(lang === 'fr' ? 'GPS indisponible sur cet appareil.' : 'GPS pa disponib sou aparèy sa a.')
-      return
-    }
-
-    watchRef.current = navigator.geolocation.watchPosition(
-      (p) => {
-        const next = {
-          lat: p.coords.latitude,
-          lng: p.coords.longitude,
-          heading: p.coords.heading ?? null,
-          speedKph: p.coords.speed == null ? null : p.coords.speed * 3.6,
-        }
-        publish(next)
-      },
-      () => setError(lang === 'fr' ? 'Autorisez la localisation pour utiliser le GPS.' : 'Bay pèmisyon Location pou itilize GPS la.'),
-      { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }
+  if (!navigator.geolocation) {
+    setError(
+      lang === 'fr'
+        ? 'GPS indisponible sur cet appareil.'
+        : 'GPS pa disponib sou aparèy sa a.'
     )
+    return
+  }
 
-    heartbeatRef.current = window.setInterval(() => {
-      if (latestPositionRef.current) void syncDriverLocation(latestPositionRef.current)
-    }, 3000)
-
-    return () => {
-      if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current)
-      if (heartbeatRef.current !== null) window.clearInterval(heartbeatRef.current)
-      watchRef.current = null
-      heartbeatRef.current = null
-    }
-  }, [lang])
-
-  useEffect(() => {
-    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-    if (!token || !position || targetLat == null || targetLng == null) return
-
-    const seq = ++requestSeq.current
-    const controller = new AbortController()
-    const timer = window.setTimeout(async () => {
-      try {
-        const coords = `${position.lng},${position.lat};${targetLng},${targetLat}`
-        const response = await fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?overview=full&geometries=polyline&steps=false&access_token=${encodeURIComponent(token)}`, { signal: controller.signal })
-        const json = await response.json()
-        const route = json.routes?.[0]
-        if (!route || seq !== requestSeq.current) {
-          setRoutePolyline(null)
-          setDistanceKm(null)
-          setEtaMin(null)
-          return
-        }
-        setDistanceKm(route.distance / 1000)
-        setEtaMin(Math.max(1, Math.round(route.duration / 60)))
-        setRoutePolyline(route.geometry ?? null)
-      } catch {
-        if (!controller.signal.aborted && seq === requestSeq.current) {
-          setRoutePolyline(null)
-          setDistanceKm(null)
-          setEtaMin(null)
-        }
+  watchRef.current = navigator.geolocation.watchPosition(
+    (p) => {
+      const next: Point = {
+        lat: p.coords.latitude,
+        lng: p.coords.longitude,
+        heading: p.coords.heading ?? null,
+        speedKph: p.coords.speed == null ? null : p.coords.speed * 3.6,
       }
-    }, 250)
 
-    return () => {
-      window.clearTimeout(timer)
-      controller.abort()
+      publish(next)
+    },
+    () =>
+      setError(
+        lang === 'fr'
+          ? 'Autorisez la localisation pour utiliser le GPS.'
+          : 'Bay pèmisyon Location pou itilize GPS la.'
+      ),
+    {
+      enableHighAccuracy: true,
+      maximumAge: 3000,
+      timeout: 15000,
     }
-  }, [position?.lat, position?.lng, targetLat, targetLng])
+  )
 
-  const mapUrl = useMemo(() => {
-    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-    if (!token || !position || targetLat == null || targetLng == null) return ''
+  heartbeatRef.current = window.setInterval(() => {
+    if (latestPositionRef.current) {
+      void syncDriverLocation(latestPositionRef.current)
+    }
+  }, 3000)
 
-    const overlays = [
-      routePolyline ? `path-5+1479ff-0.9(${encodeURIComponent(routePolyline)})` : null,
-      `pin-s-a+1479ff(${position.lng},${position.lat})`,
-      `pin-s-b+0d7b61(${targetLng},${targetLat})`,
-    ].filter(Boolean).join(',')
+  return () => {
+    if (watchRef.current !== null) {
+      navigator.geolocation.clearWatch(watchRef.current)
+    }
 
-    return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${overlays}/auto/800x600?padding=50&access_token=${encodeURIComponent(token)}`
-  }, [position, targetLat, targetLng, routePolyline])
+    if (heartbeatRef.current !== null) {
+      window.clearInterval(heartbeatRef.current)
+    }
+
+    watchRef.current = null
+    heartbeatRef.current = null
+  }
+   }, [lang]) 
 
   useEffect(() => {
-    setMapFailed(false)
-  }, [mapUrl])
+  if (!position || targetLat == null || targetLng == null) {
+    setRoutePolyline([])
+    setDistanceKm(null)
+    setEtaMin(null)
+    return
+  }
 
+  const seq = ++requestSeq.current
+
+  const timer = window.setTimeout(async () => {
+    try {
+      const google = await loadGoogleMaps()
+      const directionsService = new google.maps.DirectionsService()
+
+      const result = await directionsService.route({
+        origin: {
+          lat: position.lat,
+          lng: position.lng,
+        },
+        destination: {
+          lat: targetLat,
+          lng: targetLng,
+        },
+        travelMode: google.maps.TravelMode.DRIVING,
+        region: 'HT',
+      })
+
+      if (seq !== requestSeq.current) return
+
+      const leg = result.routes?.[0]?.legs?.[0]
+
+      if (!leg) {
+        setRoutePolyline([])
+        setDistanceKm(null)
+        setEtaMin(null)
+        return
+      }
+
+      setDistanceKm(
+        leg.distance?.value != null
+          ? leg.distance.value / 1000
+          : null
+      )
+
+      setEtaMin(
+        leg.duration?.value != null
+          ? Math.max(1, Math.round(leg.duration.value / 60))
+          : null
+      )
+
+      const path =
+  result.routes?.[0]?.overview_path?.map((point: any) => ({
+    lat: point.lat(),
+    lng: point.lng(),
+  })) ?? []
+
+setRoutePolyline(path)
+    } catch {
+      if (seq === requestSeq.current) {
+        setRoutePolyline([])
+        setDistanceKm(null)
+        setEtaMin(null)
+      }
+    }
+  }, 250)
+
+  return () => {
+    window.clearTimeout(timer)
+  }
+}, [position?.lat, position?.lng, targetLat, targetLng])
+useEffect(() => {
+  if (!position || targetLat == null || targetLng == null) return
+
+  let cancelled = false
+
+  ;(async () => {
+    try {
+      const google = await loadGoogleMaps()
+      if (cancelled || !mapEl.current) return
+
+      const driverPoint = {
+        lat: position.lat,
+        lng: position.lng,
+      }
+
+      const targetPoint = {
+        lat: targetLat,
+        lng: targetLng,
+      }
+
+      const map =
+        mapRef.current ??
+        new google.maps.Map(mapEl.current, {
+          center: driverPoint,
+          zoom: 14,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+          clickableIcons: false,
+        })
+
+      mapRef.current = map
+      setMapFailed(false)
+
+      if (!driverMarkerRef.current) {
+        driverMarkerRef.current = new google.maps.Marker({
+          map,
+          position: driverPoint,
+          title: 'Chauffeur',
+        })
+      } else {
+        driverMarkerRef.current.setPosition(driverPoint)
+        driverMarkerRef.current.setMap(map)
+      }
+
+      if (!targetMarkerRef.current) {
+        targetMarkerRef.current = new google.maps.Marker({
+          map,
+          position: targetPoint,
+          title: targetAddress,
+        })
+      } else {
+        targetMarkerRef.current.setPosition(targetPoint)
+        targetMarkerRef.current.setMap(map)
+      }
+
+      if (!routeRef.current) {
+        routeRef.current = new google.maps.Polyline({
+          map,
+          path: routePolyline,
+          strokeColor: '#1479ff',
+          strokeOpacity: 0.9,
+          strokeWeight: 5,
+        })
+      } else {
+        routeRef.current.setPath(routePolyline)
+        routeRef.current.setMap(map)
+      }
+
+      const bounds = new google.maps.LatLngBounds()
+      bounds.extend(driverPoint)
+      bounds.extend(targetPoint)
+      routePolyline.forEach((point) => bounds.extend(point))
+      map.fitBounds(bounds, 60)
+    } catch {
+      if (!cancelled) setMapFailed(true)
+    }
+  })()
+
+  return () => {
+    cancelled = true
+  }
+}, [
+  position?.lat,
+  position?.lng,
+  targetLat,
+  targetLng,
+  targetAddress,
+  routePolyline,
+])  
+useEffect(() => {
+  return () => {
+    driverMarkerRef.current?.setMap(null)
+    targetMarkerRef.current?.setMap(null)
+    routeRef.current?.setMap(null)
+
+    driverMarkerRef.current = null
+    targetMarkerRef.current = null
+    routeRef.current = null
+    mapRef.current = null
+  }
+}, [])
   return <section className="nav">
     <div className="head">
       <div>
@@ -186,15 +311,24 @@ export default function DriverMobileNavigationMap({ ride, lang, onMetricsChange 
       <b>{distanceKm == null ? 'GPS' : `${distanceKm.toFixed(1)} km${etaMin == null ? '' : ` · ${etaMin} min`}`}</b>
     </div>
 
-    {mapUrl && !mapFailed ? (
-      <img className="map" src={mapUrl} alt={lang === 'fr' ? 'Itinéraire GPS' : 'Wout GPS'} onError={() => setMapFailed(true)} />
-    ) : (
+   {position && targetLat != null && targetLng != null ? (
+  <>
+    <div ref={mapEl} className="map" />
+    {mapFailed && (
       <div className="loading">
-        {mapFailed
-          ? (lang === 'fr' ? 'La carte ne peut pas être affichée pour le moment. Le GPS continue de calculer la distance et le temps.' : 'Kat la pa ka parèt pou kounye a. GPS la kontinye kalkile distans ak tan.')
-          : (lang === 'fr' ? 'Recherche de votre position GPS…' : 'N ap chèche pozisyon GPS ou…')}
+        {lang === 'fr'
+          ? 'La carte ne peut pas être affichée pour le moment. Le GPS continue de calculer la distance et le temps.'
+          : 'Kat la pa ka parèt pou kounye a. GPS la kontinye kalkile distans ak tan.'}
       </div>
     )}
+  </>
+) : (
+  <div className="loading">
+    {lang === 'fr'
+      ? 'Recherche de votre position GPS…'
+      : 'N ap chèche pozisyon GPS ou…'}
+  </div>
+)}
     {error && <div className="error">{error}</div>}
 
     <style jsx>{`
