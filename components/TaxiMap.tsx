@@ -181,7 +181,7 @@ if (lat == null || lng == null || targetLat == null || targetLng == null) {
       : (lang === 'ht' ? 'Chofè a ap vin pran ou' : 'Votre chauffeur vient vous chercher')
   const positionLabel = lang === 'ht' ? 'Pozisyon ou' : 'Votre position'
   const liveLabel = lang === 'ht' ? 'Pozisyon an dirèk' : 'Position en direct'
-  const unavailable = lang === 'ht' ? 'Kat la pa disponib pou kounye a' : 'Carte temporairement indisponible'
+  
 
   return (
     <div className="safe-map-wrap">
