@@ -67,7 +67,13 @@ useEffect(() => {
       const goingToPassenger = row.ride_status === 'accepted'
       const targetLat = goingToPassenger ? row.pickup_latitude : row.destination_latitude
       const targetLng = goingToPassenger ? row.pickup_longitude : row.destination_longitude
-      if (targetLat == null || targetLng == null) return
+      if (targetLat == null || targetLng == null) {
+  if (active) {
+    setLiveDistanceKm(null)
+    setLiveEtaMin(null)
+  }
+  return
+}
 try {
   const google = await loadGoogleMaps()
   const directionsService = new google.maps.DirectionsService()
