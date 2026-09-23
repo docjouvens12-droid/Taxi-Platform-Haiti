@@ -25,52 +25,6 @@ type NavStep = {
   icon: string
 }
 
-function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
-  const toRad = (v: number) => v * Math.PI / 180
-  const dLat = toRad(b.lat - a.lat)
-  const dLng = toRad(b.lng - a.lng)
-  const lat1 = toRad(a.lat)
-  const lat2 = toRad(b.lat)
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
-  return 6371000 * 2 * Math.asin(Math.sqrt(h))
-}
-
-function instructionFor(step: any, lang: 'fr' | 'ht', meters: number) {
-  const maneuver = step?.maneuver ?? {}
-  const modifier = String(maneuver.modifier ?? '')
-  const type = String(maneuver.type ?? '')
-  const road = String(step?.name ?? '').trim()
-  const rounded = meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${Math.max(20, Math.round(meters / 10) * 10)} m`
-
-  let action = ''
-  let icon = '⬆️'
-  if (type === 'arrive') {
-    action = lang === 'ht' ? 'Ou rive nan destinasyon an' : 'Vous êtes arrivé à destination'
-    icon = '🏁'
-  } else if (modifier.includes('left')) {
-    action = lang === 'ht' ? 'Vire agoch' : 'Tournez à gauche'
-    icon = '⬅️'
-  } else if (modifier.includes('right')) {
-    action = lang === 'ht' ? 'Vire adwat' : 'Tournez à droite'
-    icon = '➡️'
-  } else if (type === 'roundabout' || type === 'rotary') {
-    action = lang === 'ht' ? 'Antre nan wonpwen an' : 'Entrez dans le rond-point'
-    icon = '🔄'
-  } else if (modifier.includes('uturn')) {
-    action = lang === 'ht' ? 'Fè demi-tou' : 'Faites demi-tour'
-    icon = '↩️'
-  } else {
-    action = lang === 'ht' ? 'Kontinye dwat' : 'Continuez tout droit'
-    icon = '⬆️'
-  }
-
-  const roadPart = road ? (lang === 'ht' ? ` sou ${road}` : ` sur ${road}`) : ''
-  const text = type === 'arrive'
-    ? action
-    : (lang === 'ht' ? `Nan ${rounded}, ${action.toLowerCase()}${roadPart}` : `Dans ${rounded}, ${action.toLowerCase()}${roadPart}`)
-  return { text, icon }
-}
-
 export default function DriverNavigationMap({ ride, lang }: Props) {
   const onDashboard = typeof window !== 'undefined' && window.location.pathname === '/driver/dashboard'
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -80,7 +34,7 @@ const targetMarkerRef = useRef<any>(null)
 const routeRef = useRef<any>(null)
   
   const watchRef = useRef<number | null>(null)
-  const announcedRef = useRef<Record<string, boolean>>({})
+  
   const [opened, setOpened] = useState(true)
   const [position, setPosition] = useState<Point | null>(null)
   const [distanceKm, setDistanceKm] = useState<number | null>(null)
@@ -101,7 +55,7 @@ const routeRef = useRef<any>(null)
   }, [])
 
   useEffect(() => {
-    announcedRef.current = {}
+  
     setNextStep(null)
   }, [ride.status, targetLat, targetLng])
 
@@ -240,18 +194,7 @@ useEffect(() => {
   }
 }, [targetLat, targetLng, targetAddress, goingToDestination, mapReady, onDashboard])
 
-  function speak(text: string) {
-    if (!voiceEnabled || typeof window === 'undefined' || !('speechSynthesis' in window)) return
-    try {
-      window.speechSynthesis.cancel()
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = lang === 'fr' ? 'fr-FR' : 'fr-FR'
-      utterance.rate = 0.95
-      utterance.volume = 1
-      window.speechSynthesis.speak(utterance)
-    } catch {}
-  }
-
+  
   function toggleVoice() {
     const next = !voiceEnabled
     setVoiceEnabled(next)
@@ -376,7 +319,7 @@ useEffect(() => {
   mapReady,
   onDashboard,
   lang,
-  voiceEnabled,
+  
 ])
   
   if (onDashboard) {
