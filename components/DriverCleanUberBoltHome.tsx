@@ -113,6 +113,7 @@ const routeRef=useRef<any>(null)
       strokeColor: '#FFFFFF',
       strokeWeight: 2,
       rotation: 0,
+      
     },
   })
 } else {
@@ -179,6 +180,14 @@ const snappedEnd = path[path.length - 1]
 
 if (snappedStart) {
   driverMarkerRef.current?.setPosition(snappedStart)
+  if (path.length > 1 && driverMarkerRef.current) {
+  const heading = google.maps.geometry.spherical.computeHeading(path[0], path[1])
+  const icon = driverMarkerRef.current.getIcon() as any
+  driverMarkerRef.current.setIcon({
+    ...icon,
+    rotation: heading,
+  })
+}
 }
 
 if (snappedEnd) {
