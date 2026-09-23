@@ -16,9 +16,9 @@ export type DriverMapRide={
 }
 
 type RouteInfo={distanceKm:number;durationMin:number;instruction:string;phase:'pickup'|'destination'}
-type RouteResponse={routes?:Array<{distance:number;duration:number;geometry:{coordinates:[number,number][];type:'LineString'};legs?:Array<{steps?:Array<{maneuver?:{instruction?:string}}>}>}>}
 
-type GeoSource={setData?:(data:unknown)=>void}
+
+
 
 function metersBetween(a:[number,number],b:[number,number]){
   const R=6371000,rad=(v:number)=>v*Math.PI/180
@@ -336,8 +336,7 @@ if(point){
       if(!cancelled)setMapFailed(true)
     }
   })()
-
-  return()=>{
+return()=>{
     cancelled=true
 
     if(watchRef.current!==null&&navigator.geolocation){
@@ -347,10 +346,16 @@ if(point){
     driverMarkerRef.current?.setMap?.(null)
     targetMarkerRef.current?.setMap?.(null)
     routeRef.current?.setMap?.(null)
+    routeOutlineRef.current?.setMap?.(null)
 
+    driverMarkerRef.current=null
+    targetMarkerRef.current=null
+    routeRef.current=null
+    routeOutlineRef.current=null
     mapRef.current=null
   }
-},[])   
+},[])
+  
  useEffect(()=>{
   if(!effectiveRide||!navigator.geolocation)return
 
