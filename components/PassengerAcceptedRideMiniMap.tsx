@@ -93,7 +93,6 @@ if (!driverMarkerRef.current) {
     },
   })
 } else {
-  driverMarkerRef.current.setPosition({ lat: dLat, lng: dLng })
   driverMarkerRef.current.setMap(map)
 }
    if (!endMarkerRef.current) {
@@ -103,8 +102,7 @@ if (!driverMarkerRef.current) {
     title: row.ride_status === 'in_progress' ? 'Destination' : 'Prise en charge',
   })
 } else {
-  endMarkerRef.current.setPosition({ lat: targetLat, lng: targetLng })
-  endMarkerRef.current.setMap(map)
+  driverMarkerRef.current.setMap(map)
 }
 
    const now = Date.now()
