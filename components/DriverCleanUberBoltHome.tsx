@@ -101,35 +101,32 @@ const routeRef=useRef<any>(null)
   }
 
   if (!driverMarkerRef.current) {
-    driverMarkerRef.current = new google.maps.Marker({
-      map,
-      position: driverPosition,
-      title: 'Chauffeur',
-    icon:{
-  path:google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-  scale:7,
-  fillColor:'#2563EB',
-  fillOpacity:1,
-  strokeColor:'#FFFFFF',
-  strokeWeight:2,
-  rotation:0,
-}, 
-    })
-  } else {
-    driverMarkerRef.current.setPosition(driverPosition)
-    driverMarkerRef.current.setMap(map)
-  }
+  driverMarkerRef.current = new google.maps.Marker({
+    map,
+    position: driverPosition,
+    title: 'Chauffeur',
+    icon: {
+      path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+      scale: 7,
+      fillColor: '#2563EB',
+      fillOpacity: 1,
+      strokeColor: '#FFFFFF',
+      strokeWeight: 2,
+      rotation: 0,
+    },
+  })
+} else {
+  driverMarkerRef.current.setMap(map)
+}
 
-  if (!targetMarkerRef.current) {
-    targetMarkerRef.current = new google.maps.Marker({
-      map,
-      position: targetPosition,
-      title: phase === 'pickup' ? 'Passager' : 'Destination',
-    })
-  } else {
-    targetMarkerRef.current.setPosition(targetPosition)
-    targetMarkerRef.current.setMap(map)
-  }
+if (!targetMarkerRef.current) {
+  targetMarkerRef.current = new google.maps.Marker({
+    map,
+    position: targetPosition,
+    title: phase === 'pickup' ? 'Passager' : 'Destination',
+  })
+} else {
+  targetMarkerRef.current.setMap(map)
 }
  async function drawRoute(driverPoint:[number,number],ride:DriverMapRide,force=false){
   const map=mapRef.current
