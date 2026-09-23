@@ -176,6 +176,16 @@ const route=routes?.[0]
 
 
      const path=route.path??[]
+    const snappedStart = path[0]
+const snappedEnd = path[path.length - 1]
+
+if (snappedStart) {
+  driverMarkerRef.current?.setPosition(snappedStart)
+}
+
+if (snappedEnd) {
+  targetMarkerRef.current?.setPosition(snappedEnd)
+}
 if(!routeOutlineRef.current){
   routeOutlineRef.current=new google.maps.Polyline({
     map,
