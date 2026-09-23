@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { loadGoogleMaps } from '../lib/google-maps
+import { loadGoogleMaps } from '../lib/google-maps'
 type RideStatus = 'accepted' | 'driver_arriving' | 'in_progress'
 
 type Ride = {
