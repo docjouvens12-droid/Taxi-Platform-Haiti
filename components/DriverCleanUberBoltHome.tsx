@@ -31,7 +31,17 @@ function formatDistanceKm(value:number){
   if(value<1)return value.toFixed(2)
   return value.toFixed(1)
 }
-
+function translateInstructionToHt(text:string){
+  return text
+    .replace(/Tournez à gauche/gi,'Vire agoch')
+    .replace(/Tournez à droite/gi,'Vire adwat')
+    .replace(/Continuez tout droit/gi,'Kontinye dwat')
+    .replace(/Continuez/gi,'Kontinye')
+    .replace(/Prenez la sortie/gi,'Pran sòti a')
+    .replace(/Au rond-point/gi,'Nan wonpwen an')
+    .replace(/Faites demi-tour/gi,'Fè demi-tou')
+    .replace(/Vous êtes arrivé/gi,'Ou rive')
+}
 export default function DriverCleanUberBoltHome({previewRide=null}:{previewRide?:DriverMapRide|null}){
   const [todayTrips,setTodayTrips]=useState(0)
   const [todayEarnings,setTodayEarnings]=useState(0)
@@ -47,10 +57,86 @@ export default function DriverCleanUberBoltHome({previewRide=null}:{previewRide?
 const targetMarkerRef=useRef<any>(null)
 const routeRef=useRef<any>(null)
   const routeOutlineRef=useRef<any>(null)
+  const stopMarkersRef=useRef<any[]>([])
+const trafficLightMarkersRef=useRef<any[]>([])
   const lastRoutePointRef=useRef<[number,number]|null>(null)
+   const lastTrafficSignsAtRef=useRef(0)                                                   
   const lastRouteAtRef=useRef(0)
   const lastPositionRef=useRef<[number,number]|null>(null)
   const rideRef=useRef<DriverMapRide|null>(null)
+  const lastSpokenInstructionRef=useRef('')
+ function clearTrafficMarkers(){
+  stopMarkersRef.current.forEach(marker => marker.setMap(null))
+  trafficLightMarkersRef.current.forEach(marker => marker.setMap(null))
+
+  stopMarkersRef.current = []
+  trafficLightMarkersRef.current = []
+} 
+async function loadTrafficSigns(path:any[]){
+  const map=mapRef.current
+  const google=(window as any).google
+  if(!map || !google?.maps || path.length===0)return 
+const now = Date.now()
+
+if (now - lastTrafficSignsAtRef.current < 30000) return
+
+lastTrafficSignsAtRef.current = now
+  
+ 
+
+  const lats=path.map((p:any)=>typeof p.lat==='function'?p.lat():p.lat)
+  const lngs=path.map((p:any)=>typeof p.lng==='function'?p.lng():p.lng)
+
+  const south=Math.min(...lats)
+  const north=Math.max(...lats)
+  const west=Math.min(...lngs)
+  const east=Math.max(...lngs)
+
+  const query=`[out:json][timeout:10];
+  (
+    node["highway"="stop"](${south},${west},${north},${east});
+    node["highway"="traffic_signals"](${south},${west},${north},${east});
+  );
+  out body;`
+
+  const response=await fetch(
+    'https://overpass-api.de/api/interpreter?data='+encodeURIComponent(query)
+  )
+
+  if(!response.ok)return
+
+  const data=await response.json()
+
+  clearTrafficMarkers()
+  for (const element of data.elements || []) {
+  if (typeof element.lat !== 'number' || typeof element.lon !== 'number') continue
+
+  const isStop = element.tags?.highway === 'stop'
+  const isTrafficLight = element.tags?.highway === 'traffic_signals'
+
+  if (!isStop && !isTrafficLight) continue
+
+  const marker = new google.maps.Marker({
+    map,
+    position: { lat: element.lat, lng: element.lon },
+    label: {
+      text: isStop ? '🛑' : '🚦',
+      fontSize: '20px',
+    },
+    icon: {
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: 0,
+    },
+    title: isStop ? 'STOP' : 'Feu de circulation',
+  })
+
+  if (isStop) {
+    stopMarkersRef.current.push(marker)
+  } else {
+    trafficLightMarkersRef.current.push(marker)
+  }
+}
+}  
   const effectiveRide=activeRide??previewRide
 
   useEffect(()=>{rideRef.current=effectiveRide},[effectiveRide])
@@ -217,12 +303,34 @@ strokeWeight:7,
       routeRef.current.setPath(path)
       routeRef.current.setMap(map)
     }
+    loadTrafficSigns(path).catch(() => {})
+const instruction = nextStep?.instructions || ''
 
+if (
+  instruction &&
+  instruction !== lastSpokenInstructionRef.current &&
+  typeof window !== 'undefined' &&
+  'speechSynthesis' in window
+) {
+  lastSpokenInstructionRef.current = instruction
+
+  const cleanInstruction = instruction.replace(/<[^>]+>/g, '')
+const spokenInstruction = ht
+  ? translateInstructionToHt(cleanInstruction)
+  : cleanInstruction
+
+const utterance = new SpeechSynthesisUtterance(spokenInstruction)
+
+  utterance.lang = ht ? 'ht-HT' : 'fr-FR'
+  utterance.rate = 1
+  window.speechSynthesis.cancel()
+  window.speechSynthesis.speak(utterance)
+}
     setRouteInfo({
     distanceKm:route.distanceMeters!=null?route.distanceMeters/1000:metersBetween(driverPoint,end)/1000,
 durationMin:route.durationMillis!=null?Math.max(1,Math.round(route.durationMillis/60000)):1,
   
-      instruction:nextStep?.instructions||'',
+      instruction,
       phase,
     })
 
@@ -233,12 +341,12 @@ durationMin:route.durationMillis!=null?Math.max(1,Math.round(route.durationMilli
 
     map.fitBounds(bounds,80)
   }catch{
-    setRouteInfo({
-      distanceKm:metersBetween(driverPoint,end)/1000,
-      durationMin:1,
-      instruction:'',
-      phase,
-    })
+   setRouteInfo({
+  distanceKm: metersBetween(driverPoint,end) / 1000,
+durationMin: 1,
+  instruction:``,
+  phase,
+}) 
   }
 }
   async function applyPosition(pos:GeolocationPosition){
@@ -401,13 +509,13 @@ return()=>{
   const ht=typeof window!=='undefined'&&localStorage.getItem('taxi-language')==='ht'
   return <>
     <style>{`
-      .dcu-home{margin:16px 0 10px}.dcu-map-shell{height:310px;border-radius:26px;overflow:hidden;position:relative;background:#eaf1ef;border:1px solid #dce7e3;box-shadow:0 10px 28px rgba(16,32,51,.08)}.dcu-map{width:100%;height:100%}.dcu-map-label{position:absolute;left:14px;top:14px;z-index:5;background:rgba(255,255,255,.96);border-radius:999px;padding:9px 13px;font-size:12px;font-weight:900;color:#102033;box-shadow:0 4px 14px rgba(0,0,0,.08)}.dcu-map-fallback{height:100%;display:grid;place-items:center;text-align:center;padding:20px;color:#617281;font-weight:800}.dcu-route-card{position:absolute;left:12px;right:12px;bottom:12px;z-index:45;background:rgba(255,255,255,.97);border:1px solid #dfe9e5;border-radius:18px;padding:10px 13px;box-shadow:0 8px 22px rgba(16,32,51,.14)}.dcu-route-top{display:flex;justify-content:space-between;align-items:center;gap:8px}.dcu-route-top strong{font-size:12px;color:#102033}.dcu-route-top span{font-size:12px;font-weight:950;color:#0f705a}.dcu-route-card p{display:none}.dcu-gps-error{color:#b54747!important}.dcu-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:11px}.dcu-stat{background:#fff;border:1px solid #e0e8e5;border-radius:18px;padding:13px 9px;min-width:0;box-shadow:0 5px 16px rgba(16,32,51,.04)}.dcu-stat small,.dcu-stat strong{display:block}.dcu-stat small{font-size:9px;color:#7d8b98;font-weight:800}.dcu-stat strong{margin-top:6px;font-size:14px;color:#102033}@media(max-width:560px){.dcu-map-shell{height:315px}.dcu-stat{padding:12px 8px}.dcu-stat strong{font-size:13px}}
+      dcu-route-card p{display:block;margin:6px 0 0;font-size:13px;font-weight:850;color:#102033}
     `}</style>
     <section className="dcu-home">
       <div className="dcu-map-shell">
         {!effectiveRide&&<div className={`dcu-map-label ${gpsStatus==='error'?'dcu-gps-error':''}`}>{gpsStatus==='error'?(ht?'GPS pa disponib':'GPS indisponible'):(ht?'Pozisyon ou':'Votre position')}</div>}
         {mapFailed?<div className="dcu-map-fallback">{ht?'Kat GPS la pa disponib pou kounye a.':'La carte GPS est indisponible pour le moment.'}</div>:<div ref={mapEl} className="dcu-map"/>}
-        {routeInfo&&<div className="dcu-route-card"><div className="dcu-route-top"><strong>{routeInfo.phase==='pickup'?(ht?'Distans ak pasaje a':'Distance du passager'):(ht?'Rete pou destinasyon':'Reste à destination')}</strong><span>{formatDistanceKm(routeInfo.distanceKm)} km · {routeInfo.durationMin} min</span></div></div>}
+        {routeInfo&&<div className="dcu-route-card"><div className="dcu-route-top"><strong>{routeInfo.phase==='pickup'?(ht?'Distans ak pasaje a':'Distance du passager'):(ht?'Rete pou destinasyon':'Reste à destination')}</strong><span>{formatDistanceKm(routeInfo.distanceKm)} km · {routeInfo.durationMin} min</span></div>{routeInfo.instruction&&<p>{routeInfo.instruction}</p>}</div>}
       </div>
       <div className="dcu-stats"><div className="dcu-stat"><small>{ht?'Revni jodi a':'Revenus aujourd’hui'}</small><strong>💰 {Math.round(todayEarnings).toLocaleString('fr-HT')} HTG</strong></div><div className="dcu-stat"><small>{ht?'Trajè jodi a':'Trajets aujourd’hui'}</small><strong>🚕 {todayTrips}</strong></div><div className="dcu-stat"><small>{ht?'Evalyasyon':'Évaluation'}</small><strong>★ {rating.toFixed(1)}</strong></div></div>
     </section>
