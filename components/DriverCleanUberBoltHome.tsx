@@ -342,8 +342,8 @@ durationMin:route.durationMillis!=null?Math.max(1,Math.round(route.durationMilli
     map.fitBounds(bounds,80)
   }catch{
    setRouteInfo({
-  distanceKm: route.distanceMeters != null ? route.distanceMeters / 1000 : metersBetween(driverPoint,end) / 1000,
-  durationMin: route.durationMillis != null ? Math.max(1, Math.round(route.durationMillis / 60000)) : 1,
+  distanceKm: metersBetween(driverPoint,end) / 1000,
+durationMin: 1,
   instruction:``,
   phase,
 }) 
