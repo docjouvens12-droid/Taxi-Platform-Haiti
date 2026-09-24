@@ -10,3 +10,4 @@
 .drv2-active-mode .drv2-offer-brand,.drv2-active-mode .drv2-rating{display:flex!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:10000!important}
 .drv2-active-mode .dcu-home{z-index:1!important}.drv2-active-mode .drv2-offer-top{z-index:2147483647!important}
 .drv2-active-mode .drv2-offer-top{top:calc(env(safe-area-inset-top) + 16px)!important;background:transparent!important;padding:0!important}                                           
+.drv2-active-mode .drv2-offer-top{left:24px!important;right:24px!important;width:auto!important;box-sizing:border-box!important}
