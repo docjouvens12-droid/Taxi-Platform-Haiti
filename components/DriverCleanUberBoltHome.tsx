@@ -31,7 +31,17 @@ function formatDistanceKm(value:number){
   if(value<1)return value.toFixed(2)
   return value.toFixed(1)
 }
-
+unction translateInstructionToHt(text:string){
+  return text
+    .replace(/Tournez à gauche/gi,'Vire agoch')
+    .replace(/Tournez à droite/gi,'Vire adwat')
+    .replace(/Continuez tout droit/gi,'Kontinye dwat')
+    .replace(/Continuez/gi,'Kontinye')
+    .replace(/Prenez la sortie/gi,'Pran sòti a')
+    .replace(/Au rond-point/gi,'Nan wonpwen an')
+    .replace(/Faites demi-tour/gi,'Fè demi-tou')
+    .replace(/Vous êtes arrivé/gi,'Ou rive')
+}
 export default function DriverCleanUberBoltHome({previewRide=null}:{previewRide?:DriverMapRide|null}){
   const [todayTrips,setTodayTrips]=useState(0)
   const [todayEarnings,setTodayEarnings]=useState(0)
@@ -51,6 +61,7 @@ const routeRef=useRef<any>(null)
   const lastRouteAtRef=useRef(0)
   const lastPositionRef=useRef<[number,number]|null>(null)
   const rideRef=useRef<DriverMapRide|null>(null)
+  const lastSpokenInstructionRef=useRef('')
   const effectiveRide=activeRide??previewRide
 
   useEffect(()=>{rideRef.current=effectiveRide},[effectiveRide])
@@ -217,12 +228,33 @@ strokeWeight:7,
       routeRef.current.setPath(path)
       routeRef.current.setMap(map)
     }
+const instruction = nextStep?.instructions || ''
 
+if (
+  instruction &&
+  instruction !== lastSpokenInstructionRef.current &&
+  typeof window !== 'undefined' &&
+  'speechSynthesis' in window
+) {
+  lastSpokenInstructionRef.current = instruction
+
+  const cleanInstruction = instruction.replace(/<[^>]+>/g, '')
+const spokenInstruction = ht
+  ? translateInstructionToHt(cleanInstruction)
+  : cleanInstruction
+
+const utterance = new SpeechSynthesisUtterance(spokenInstruction)
+
+  utterance.lang = ht ? 'ht-HT' : 'fr-FR'
+  utterance.rate = 1
+  window.speechSynthesis.cancel()
+  window.speechSynthesis.speak(utterance)
+}
     setRouteInfo({
     distanceKm:route.distanceMeters!=null?route.distanceMeters/1000:metersBetween(driverPoint,end)/1000,
 durationMin:route.durationMillis!=null?Math.max(1,Math.round(route.durationMillis/60000)):1,
   
-      instruction:nextStep?.instructions||'',
+      instruction,
       phase,
     })
 
@@ -233,12 +265,12 @@ durationMin:route.durationMillis!=null?Math.max(1,Math.round(route.durationMilli
 
     map.fitBounds(bounds,80)
   }catch{
-    setRouteInfo({
-      distanceKm:metersBetween(driverPoint,end)/1000,
-      durationMin:1,
-      instruction:'',
-      phase,
-    })
+   setRouteInfo({
+  distanceKm: route.distanceMeters != null ? route.distanceMeters / 1000 : metersBetween(driverPoint,end) / 1000,
+  durationMin: route.durationMillis != null ? Math.max(1, Math.round(route.durationMillis / 60000)) : 1,
+  instruction:``,
+  phase,
+}) 
   }
 }
   async function applyPosition(pos:GeolocationPosition){
