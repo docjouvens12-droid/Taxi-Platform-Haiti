@@ -514,7 +514,7 @@ return()=>{
   .dcu-map-shell{height:310px;border-radius:26px;overflow:hidden;position:relative;background:#eaf1ef;border:1px solid #dce7e3;box-shadow:0 10px 28px rgba(16,32,51,.08)}
   .dcu-map{width:100%;height:100%}
   .dcu-route-card p{display:block;margin:6px 0 0;font-size:13px;font-weight:850;color:#102033}
-`}</style
+`}</style>
   
     <section className="dcu-home">
       <div className="dcu-map-shell">
