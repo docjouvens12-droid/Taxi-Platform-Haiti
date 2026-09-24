@@ -71,7 +71,7 @@ useEffect(() => {
         <div className="drv2-sheet-handle"/>
         <div className="drv2-offer-head"><span className="drv2-service-chip">{incomingRide.service_type??'Standard'}</span><span className={offerSeconds<=5?'drv2-countdown danger':'drv2-countdown'}>{offerSeconds}s</span></div>
         <div className="drv2-offer-main"><strong>{incomingRide.estimated_duration_min??'—'} min <span>({incomingRide.estimated_distance_km??'—'} km)</span></strong><em>{incomingRide.estimated_fare_htg??'—'} HTG</em></div>
-        <div className="drv2-offer-route"><div><b>●</b><span><small>DÉPART</small><strong>{incomingRide.pickup_address}</strong></span></div><div><b>■</b><span><small>DESTINATION</small><strong>{destination.city}</strong>{destination.street&&<em>{destination.street}</em>}</span></div></div>
+        <div className="drv2-offer-route"><div><b>■</b><span><small>DESTINATION</small><strong>{destination.city}</strong>{destination.street&&<em>{destination.street}</em>}</span></div><div><b>●</b><span><small>DÉPART</small><strong>{incomingRide.pickup_address}</strong></span></div></div>
         {message&&<div className="drv2-message" role="status">{message}</div>}
         <div className="drv2-offer-actions"><button type="button" className="reject" onClick={()=>rideAction('reject',incomingRide)} disabled={busy}>Refuser</button><button type="button" className="accept" onClick={()=>rideAction('accept',incomingRide)} disabled={busy||!vehicle}>Accepter</button></div>
       </section>
