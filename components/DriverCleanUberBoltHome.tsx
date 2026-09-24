@@ -199,7 +199,7 @@ if(!routeOutlineRef.current){
     path,
     strokeColor:'#FFFFFF',
     strokeOpacity:1,
-    strokeWeight:11,
+    strokeWeight:12,
   })
 }else{
   routeOutlineRef.current.setPath(path)
@@ -211,7 +211,7 @@ if(!routeOutlineRef.current){
         path,
       strokeColor:'#4285F4',
 strokeOpacity:1,
-strokeWeight:6,
+strokeWeight:7,
       })
     }else{
       routeRef.current.setPath(path)
