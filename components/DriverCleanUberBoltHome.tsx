@@ -31,7 +31,7 @@ function formatDistanceKm(value:number){
   if(value<1)return value.toFixed(2)
   return value.toFixed(1)
 }
-unction translateInstructionToHt(text:string){
+function translateInstructionToHt(text:string){
   return text
     .replace(/Tournez à gauche/gi,'Vire agoch')
     .replace(/Tournez à droite/gi,'Vire adwat')
