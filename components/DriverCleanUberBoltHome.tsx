@@ -57,11 +57,86 @@ export default function DriverCleanUberBoltHome({previewRide=null}:{previewRide?
 const targetMarkerRef=useRef<any>(null)
 const routeRef=useRef<any>(null)
   const routeOutlineRef=useRef<any>(null)
-  const lastRoutePointRef=useRef<[number,number]|null>(null)
+  const stopMarkersRef=useRef<any[]>([])
+const trafficLightMarkersRef=useRef<any[]>([])
+  const lastRoutePointRef=useRef<[number,number]|null>(null
+   const lastTrafficSignsAtRef=useRef(0)                                                   
   const lastRouteAtRef=useRef(0)
   const lastPositionRef=useRef<[number,number]|null>(null)
   const rideRef=useRef<DriverMapRide|null>(null)
   const lastSpokenInstructionRef=useRef('')
+ function clearTrafficMarkers(){
+  stopMarkersRef.current.forEach(marker => marker.setMap(null))
+  trafficLightMarkersRef.current.forEach(marker => marker.setMap(null))
+
+  stopMarkersRef.current = []
+  trafficLightMarkersRef.current = []
+} 
+async function loadTrafficSigns(path:any[]){
+  const map=mapRef.current
+  const google=(window as any).google
+  if(!map || !google?.maps || path.length===0)return 
+const now = Date.now()
+
+if (now - lastTrafficSignsAtRef.current < 30000) return
+
+lastTrafficSignsAtRef.current = now
+  
+ 
+
+  const lats=path.map((p:any)=>typeof p.lat==='function'?p.lat():p.lat)
+  const lngs=path.map((p:any)=>typeof p.lng==='function'?p.lng():p.lng)
+
+  const south=Math.min(...lats)
+  const north=Math.max(...lats)
+  const west=Math.min(...lngs)
+  const east=Math.max(...lngs)
+
+  const query=`[out:json][timeout:10];
+  (
+    node["highway"="stop"](${south},${west},${north},${east});
+    node["highway"="traffic_signals"](${south},${west},${north},${east});
+  );
+  out body;`
+
+  const response=await fetch(
+    'https://overpass-api.de/api/interpreter?data='+encodeURIComponent(query)
+  )
+
+  if(!response.ok)return
+
+  const data=await response.json()
+
+  clearTrafficMarkers()
+  for (const element of data.elements || []) {
+  if (typeof element.lat !== 'number' || typeof element.lon !== 'number') continue
+
+  const isStop = element.tags?.highway === 'stop'
+  const isTrafficLight = element.tags?.highway === 'traffic_signals'
+
+  if (!isStop && !isTrafficLight) continue
+
+  const marker = new google.maps.Marker({
+    map,
+    position: { lat: element.lat, lng: element.lon },
+    label: {
+      text: isStop ? '🛑' : '🚦',
+      fontSize: '20px',
+    },
+    icon: {
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: 0,
+    },
+    title: isStop ? 'STOP' : 'Feu de circulation',
+  })
+
+  if (isStop) {
+    stopMarkersRef.current.push(marker)
+  } else {
+    trafficLightMarkersRef.current.push(marker)
+  }
+}
+}  
   const effectiveRide=activeRide??previewRide
 
   useEffect(()=>{rideRef.current=effectiveRide},[effectiveRide])
@@ -228,6 +303,7 @@ strokeWeight:7,
       routeRef.current.setPath(path)
       routeRef.current.setMap(map)
     }
+    loadTrafficSigns(path).catch(() => {})
 const instruction = nextStep?.instructions || ''
 
 if (
