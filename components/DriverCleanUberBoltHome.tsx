@@ -509,11 +509,24 @@ return()=>{
   const ht=typeof window!=='undefined'&&localStorage.getItem('taxi-language')==='ht'
   return <>
     
-      <style>{`
+     <style>{`
   .dcu-home{margin:16px 0 10px}
   .dcu-map-shell{height:310px;border-radius:26px;overflow:hidden;position:relative;background:#eaf1ef;border:1px solid #dce7e3;box-shadow:0 10px 28px rgba(16,32,51,.08)}
   .dcu-map{width:100%;height:100%}
+  .dcu-map-label{position:absolute;left:14px;top:14px;z-index:5;background:rgba(255,255,255,.96);border-radius:999px;padding:9px 13px;font-size:12px;font-weight:900;color:#102033;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+  .dcu-map-fallback{height:100%;display:grid;place-items:center;text-align:center;padding:20px;color:#617281;font-weight:800}
+  .dcu-route-card{position:absolute;left:12px;right:12px;bottom:12px;z-index:45;background:rgba(255,255,255,.97);border:1px solid #dfe9e5;border-radius:18px;padding:10px 13px;box-shadow:0 8px 22px rgba(16,32,51,.14)}
+  .dcu-route-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .dcu-route-top strong{font-size:12px;color:#102033}
+  .dcu-route-top span{font-size:12px;font-weight:950;color:#0f705a}
   .dcu-route-card p{display:block;margin:6px 0 0;font-size:13px;font-weight:850;color:#102033}
+  .dcu-gps-error{color:#b54747!important}
+  .dcu-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:11px}
+  .dcu-stat{background:#fff;border:1px solid #e0e8e5;border-radius:18px;padding:13px 9px;min-width:0;box-shadow:0 5px 16px rgba(16,32,51,.04)}
+  .dcu-stat small,.dcu-stat strong{display:block}
+  .dcu-stat small{font-size:9px;color:#7d8b98;font-weight:800}
+  .dcu-stat strong{margin-top:6px;font-size:14px;color:#102033}
+  @media(max-width:560px){.dcu-map-shell{height:315px}.dcu-stat{padding:12px 8px}.dcu-stat strong{font-size:13px}}
 `}</style>
   
     <section className="dcu-home">
